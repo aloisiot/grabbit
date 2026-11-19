@@ -1,30 +1,93 @@
 @import "tailwindcss";
 
 /*
- * One accent color. Every other tone is mixed from it, so changing
- * --accent-base re-themes the whole app.
+ * One accent hue. Every colour in the app is that hue at a different
+ * lightness, so changing --accent-hue re-themes everything, greys included.
  *
- *   accent         buttons, progress, selected states
- *   accent-strong  hover/pressed, emphasised text and icons (errors too)
- *   accent-soft    tinted backgrounds, progress tracks
- *   accent-faint   subtle notice backgrounds
+ *   accent          primary button, checked boxes, switches, progress
+ *   accent-strong   hover/pressed, accent text and links, errors
+ *   accent-soft     selected rows, progress tracks, tinted tiles
+ *   accent-faint    row hover, notices
+ *   accent-on       text and icons on an accent fill
+ *
+ * Neutrals carry a trace of the hue (chroma ≤ 0.014):
+ *   bg → surface → fill → separator, and label / label-secondary / label-tertiary.
+ * Mirrors the Grabbit design system's tokens.json.
  */
-@theme {
-  --accent-base: oklch(0.55 0.2 275);
+:root {
+  --accent-hue: 275;
+}
 
-  --color-accent: var(--accent-base);
-  --color-accent-strong: color-mix(in oklab, var(--accent-base) 72%, black);
-  --color-accent-soft: color-mix(in oklab, var(--accent-base) 14%, white);
-  --color-accent-faint: color-mix(in oklab, var(--accent-base) 6%, white);
+@theme {
+  --color-accent: oklch(0.55 0.2 var(--accent-hue));
+  --color-accent-strong: oklch(0.47 0.19 var(--accent-hue));
+  --color-accent-soft: oklch(0.93 0.035 var(--accent-hue));
+  --color-accent-faint: oklch(0.97 0.014 var(--accent-hue));
+  --color-accent-on: #fff;
+
+  --color-bg: oklch(0.975 0.003 var(--accent-hue));
+  --color-surface: #fff;
+  --color-bar: oklch(0.985 0.002 var(--accent-hue) / 0.82);
+  --color-fill: oklch(0.935 0.005 var(--accent-hue));
+  --color-fill-hover: oklch(0.9 0.006 var(--accent-hue));
+  --color-separator: oklch(0.9 0.005 var(--accent-hue));
+  --color-control-border: oklch(0.78 0.008 var(--accent-hue));
+  --color-label: oklch(0.21 0.012 var(--accent-hue));
+  --color-label-secondary: oklch(0.5 0.014 var(--accent-hue));
+  --color-label-tertiary: oklch(0.64 0.01 var(--accent-hue));
+
+  --radius-control: 7px;
+  --radius-group: 11px;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --color-accent: color-mix(in oklab, var(--accent-base) 85%, white);
-    --color-accent-strong: color-mix(in oklab, var(--accent-base) 55%, white);
-    --color-accent-soft: color-mix(in oklab, var(--accent-base) 28%, var(--color-zinc-900));
-    --color-accent-faint: color-mix(in oklab, var(--accent-base) 14%, var(--color-zinc-900));
+    --color-accent: oklch(0.66 0.17 var(--accent-hue));
+    --color-accent-strong: oklch(0.8 0.1 var(--accent-hue));
+    --color-accent-soft: oklch(0.33 0.075 var(--accent-hue));
+    --color-accent-faint: oklch(0.25 0.04 var(--accent-hue));
+    --color-accent-on: oklch(0.17 0.03 var(--accent-hue));
+
+    --color-bg: oklch(0.17 0.006 var(--accent-hue));
+    --color-surface: oklch(0.215 0.007 var(--accent-hue));
+    --color-bar: oklch(0.2 0.006 var(--accent-hue) / 0.82);
+    --color-fill: oklch(0.28 0.008 var(--accent-hue));
+    --color-fill-hover: oklch(0.32 0.009 var(--accent-hue));
+    --color-separator: oklch(0.3 0.008 var(--accent-hue));
+    --color-control-border: oklch(0.45 0.01 var(--accent-hue));
+    --color-label: oklch(0.97 0.003 var(--accent-hue));
+    --color-label-secondary: oklch(0.74 0.01 var(--accent-hue));
+    --color-label-tertiary: oklch(0.56 0.01 var(--accent-hue));
   }
+}
+
+/* Two elevations only. Kept out of @theme so dark mode can swap them. */
+:root {
+  --elev-control: 0 0.5px 1px rgb(20 18 40 / 0.14), 0 0 0 0.5px rgb(20 18 40 / 0.1);
+  --elev-group: 0 0 0 0.5px rgb(20 18 40 / 0.08), 0 1px 2px rgb(20 18 40 / 0.04);
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --elev-control: 0 0.5px 1px rgb(0 0 0 / 0.4), 0 0 0 0.5px rgb(255 255 255 / 0.08);
+    --elev-group: 0 0 0 0.5px rgb(255 255 255 / 0.07);
+  }
+}
+@utility elev-control {
+  box-shadow: var(--elev-control);
+}
+@utility elev-group {
+  box-shadow: var(--elev-group);
+}
+/* Keyboard focus: the accent as a soft halo, following the control's corners. */
+@utility focus-ring {
+  outline: 3.5px solid color-mix(in oklab, var(--color-accent) 40%, transparent);
+  outline-offset: 0;
+}
+/* Translucent toolbar / action bar material. */
+@utility material-bar {
+  background: var(--color-bar);
+  backdrop-filter: saturate(180%) blur(20px);
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
 }
 
 /* Indeterminate bar: moves with transform, so it never triggers layout. */
@@ -35,7 +98,7 @@
 
 :root {
   color-scheme: light dark;
-  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, "Segoe UI", Roboto, sans-serif;
   -webkit-font-smoothing: antialiased;
   accent-color: var(--color-accent);
 }
@@ -46,18 +109,11 @@ html, body, #root {
 }
 
 body {
-  background: var(--color-zinc-50);
-  color: var(--color-zinc-900);
+  background: var(--color-bg);
+  color: var(--color-label);
   user-select: none;
   -webkit-user-select: none;
   cursor: default;
-}
-
-@media (prefers-color-scheme: dark) {
-  body {
-    background: var(--color-zinc-950);
-    color: var(--color-zinc-100);
-  }
 }
 
 input, textarea, .select-text {

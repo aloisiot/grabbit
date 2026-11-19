@@ -1,14 +1,19 @@
 import type { ButtonHTMLAttributes, ComponentPropsWithRef, ReactNode } from "react";
 
-type Variant = "primary" | "secondary" | "ghost" | "danger";
+type Variant = "primary" | "secondary" | "plain" | "ghost" | "danger";
 
 const VARIANTS: Record<Variant, string> = {
-  primary:
-    "bg-accent text-white hover:bg-accent-strong active:bg-accent-strong disabled:bg-accent/50 shadow-sm dark:text-zinc-950",
-  secondary:
-    "bg-white text-zinc-800 ring-1 ring-zinc-300 hover:bg-zinc-50 dark:bg-zinc-800 dark:text-zinc-100 dark:ring-zinc-700 dark:hover:bg-zinc-700",
-  ghost: "text-zinc-600 hover:bg-zinc-200/70 dark:text-zinc-300 dark:hover:bg-zinc-800",
+  primary: "bg-accent text-accent-on hover:bg-accent-strong active:bg-accent-strong",
+  secondary: "bg-surface text-label elev-control hover:bg-fill",
+  plain: "text-accent-strong hover:bg-accent-faint",
+  ghost: "text-label-secondary hover:bg-fill-hover hover:text-label",
   danger: "text-accent-strong hover:bg-accent-soft",
+};
+
+const SIZES = {
+  sm: "h-6 px-2 text-xs gap-1.5 rounded-md",
+  md: "h-7 px-3 text-[13px] gap-1.5 rounded-[var(--radius-control)]",
+  lg: "h-9 px-4 text-sm font-semibold gap-2 rounded-[9px]",
 };
 
 export function Button({
@@ -16,12 +21,11 @@ export function Button({
   size = "md",
   className = "",
   ...props
-}: ComponentPropsWithRef<"button"> & { variant?: Variant; size?: "sm" | "md" }) {
-  const sizing = size === "sm" ? "h-7 px-2.5 text-xs gap-1.5" : "h-9 px-3.5 text-sm gap-2";
+}: ComponentPropsWithRef<"button"> & { variant?: Variant; size?: keyof typeof SIZES }) {
   return (
     <button
       type="button"
-      className={`inline-flex shrink-0 items-center justify-center rounded-lg font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent ${sizing} ${VARIANTS[variant]} ${className}`}
+      className={`inline-flex shrink-0 items-center justify-center whitespace-nowrap font-medium transition-colors disabled:pointer-events-none disabled:opacity-45 focus-visible:focus-ring ${SIZES[size]} ${VARIANTS[variant]} ${className}`}
       {...props}
     />
   );
@@ -56,14 +60,15 @@ export function ProgressBar({ value, indeterminate, tone = "accent" }: { value: 
 
 export function Thumb({ src, alt, className = "" }: { src: string | null | undefined; alt: string; className?: string }) {
   return src ? (
-    <img src={src} alt={alt} loading="lazy" referrerPolicy="no-referrer" className={`shrink-0 rounded-md bg-zinc-200 object-cover dark:bg-zinc-800 ${className}`} />
+    <img src={src} alt={alt} loading="lazy" referrerPolicy="no-referrer" className={`shrink-0 rounded bg-fill object-cover ${className}`} />
   ) : (
-    <div className={`flex shrink-0 items-center justify-center rounded-md bg-zinc-200 text-zinc-400 dark:bg-zinc-800 ${className}`}>
+    <div className={`flex shrink-0 items-center justify-center rounded bg-fill text-label-tertiary ${className}`}>
       <Icon name="film" />
     </div>
   );
 }
 
+/** macOS segmented control: the chosen segment is raised, not coloured. */
 export function Segmented<T extends string>({
   value,
   options,
@@ -76,7 +81,7 @@ export function Segmented<T extends string>({
   label: string;
 }) {
   return (
-    <div role="radiogroup" aria-label={label} className="inline-flex rounded-lg bg-zinc-200/70 p-0.5 dark:bg-zinc-800">
+    <div role="radiogroup" aria-label={label} className="inline-flex gap-0.5 rounded-lg bg-fill p-0.5">
       {options.map((o) => (
         <button
           key={o.value}
@@ -84,10 +89,8 @@ export function Segmented<T extends string>({
           role="radio"
           aria-checked={value === o.value}
           onClick={() => onChange(o.value)}
-          className={`inline-flex h-8 items-center gap-1.5 rounded-md px-3 text-sm font-medium transition-colors ${
-            value === o.value
-              ? "bg-white text-zinc-900 shadow-sm dark:bg-zinc-600 dark:text-white"
-              : "text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
+          className={`inline-flex h-6 items-center gap-1.5 rounded-md px-3 text-[13px] font-medium transition-colors focus-visible:focus-ring ${
+            value === o.value ? "bg-surface text-label elev-control" : "text-label-secondary hover:text-label"
           }`}
         >
           {o.label}
@@ -100,47 +103,155 @@ export function Segmented<T extends string>({
 export function Field({ label, hint, children }: { label: string; hint?: ReactNode; children: ReactNode }) {
   return (
     <label className="flex flex-col gap-1.5">
-      <span className="text-xs font-medium uppercase tracking-wide text-zinc-500 dark:text-zinc-400">{label}</span>
+      <span className="text-xs font-semibold text-label-secondary">{label}</span>
       {children}
-      {hint && <span className="text-xs text-zinc-500 dark:text-zinc-400">{hint}</span>}
+      {hint && <span className="text-xs text-label-secondary">{hint}</span>}
     </label>
   );
 }
 
 export const selectClass =
-  "h-9 rounded-lg bg-white px-2.5 text-sm text-zinc-900 ring-1 ring-zinc-300 focus:outline-2 focus:outline-accent dark:bg-zinc-800 dark:text-zinc-100 dark:ring-zinc-700";
+  "h-7 rounded-[var(--radius-control)] bg-surface px-2 text-[13px] text-label elev-control focus-visible:focus-ring";
 
 export const inputClass =
-  "h-9 rounded-lg bg-white px-3 text-sm text-zinc-900 ring-1 ring-zinc-300 placeholder:text-zinc-400 focus:outline-2 focus:outline-accent dark:bg-zinc-800 dark:text-zinc-100 dark:ring-zinc-700";
+  "h-7 rounded-[var(--radius-control)] bg-surface px-2.5 text-[13px] text-label elev-control placeholder:text-label-tertiary outline-none focus-visible:focus-ring";
 
+/** Checkbox with a label, for settings lists. In grouped forms prefer Switch. */
 export function Toggle({ checked, onChange, label, disabled }: { checked: boolean; onChange: (v: boolean) => void; label: ReactNode; disabled?: boolean }) {
   return (
-    <label className={`inline-flex items-center gap-2 text-sm ${disabled ? "opacity-50" : "cursor-pointer"}`}>
-      <input
-        type="checkbox"
-        className="size-4 rounded accent-accent"
-        checked={checked}
-        disabled={disabled}
-        onChange={(e) => onChange(e.target.checked)}
-      />
-      <span className="text-zinc-700 dark:text-zinc-200">{label}</span>
+    <label className={`inline-flex items-center gap-2 text-sm ${disabled ? "opacity-50" : ""}`}>
+      <Checkbox checked={checked} onChange={onChange} disabled={disabled} />
+      <span className="text-label">{label}</span>
     </label>
   );
 }
 
-export function Card({ children, className = "" }: { children: ReactNode; className?: string }) {
+export function Checkbox({
+  checked,
+  onChange,
+  disabled,
+  label,
+}: {
+  checked: boolean;
+  onChange: (v: boolean) => void;
+  disabled?: boolean;
+  label?: string;
+}) {
   return (
-    <section className={`rounded-xl bg-white p-4 ring-1 ring-zinc-200 dark:bg-zinc-900 dark:ring-zinc-800 ${className}`}>
-      {children}
+    <span className="relative inline-flex size-4 shrink-0">
+      <input
+        type="checkbox"
+        aria-label={label}
+        className="peer size-4 appearance-none rounded bg-surface shadow-[inset_0_0_0_1px_var(--color-control-border)] transition-colors checked:bg-accent checked:shadow-none focus-visible:focus-ring"
+        checked={checked}
+        disabled={disabled}
+        onChange={(e) => onChange(e.target.checked)}
+      />
+      <Icon name="check" className="pointer-events-none absolute inset-0.5 size-3 text-accent-on opacity-0 peer-checked:opacity-100 [stroke-width:2.6]" />
+    </span>
+  );
+}
+
+/** macOS switch, for on/off options inside a FormRow. */
+export function Switch({ checked, onChange, label, disabled }: { checked: boolean; onChange: (v: boolean) => void; label: string; disabled?: boolean }) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      aria-label={label}
+      disabled={disabled}
+      onClick={() => onChange(!checked)}
+      className={`relative h-[18px] w-8 shrink-0 rounded-full transition-colors duration-200 focus-visible:focus-ring disabled:opacity-45 ${
+        checked ? "bg-accent" : "bg-fill shadow-[inset_0_0_0_0.5px_var(--color-separator)]"
+      }`}
+    >
+      <span
+        className={`absolute top-px left-px size-4 rounded-full bg-white elev-control transition-transform duration-200 ${checked ? "translate-x-3.5" : ""}`}
+      />
+    </button>
+  );
+}
+
+/** macOS pop-up button over a native select. */
+export function PopUp({ label, value, onChange, children }: { label: string; value: string; onChange: (v: string) => void; children: ReactNode }) {
+  return (
+    <span className="relative inline-flex items-center">
+      <select
+        aria-label={label}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="h-6 appearance-none rounded-md bg-surface pr-7 pl-2 text-[13px] text-label elev-control focus-visible:focus-ring"
+      >
+        {children}
+      </select>
+      <span className="pointer-events-none absolute right-[3px] flex size-4 items-center justify-center rounded bg-accent text-accent-on">
+        <Icon name="chevrons" className="size-2.5" />
+      </span>
+    </span>
+  );
+}
+
+/** Raised box for content that stands alone (History, Settings). */
+export function Card({ children, className = "" }: { children: ReactNode; className?: string }) {
+  return <section className={`rounded-[var(--radius-group)] bg-surface p-4 elev-group ${className}`}>{children}</section>;
+}
+
+/** Inset grouped section, as in macOS System Settings: header, rows in a box, optional footer. */
+export function Group({
+  header,
+  accessory,
+  footer,
+  children,
+  className = "",
+}: {
+  header?: ReactNode;
+  accessory?: ReactNode;
+  footer?: ReactNode;
+  children: ReactNode;
+  className?: string;
+}) {
+  return (
+    <section className="flex flex-col gap-1.5">
+      {(header || accessory) && (
+        <div className="flex min-h-7 items-center justify-between gap-3 px-4 text-xs font-semibold text-label-secondary">
+          <h3>{header}</h3>
+          {accessory}
+        </div>
+      )}
+      <div className={`overflow-hidden rounded-[var(--radius-group)] bg-surface elev-group ${className}`}>{children}</div>
+      {footer && <div className="px-4 text-xs text-label-secondary">{footer}</div>}
     </section>
+  );
+}
+
+/** Label on the left, control on the right; hairline between rows starts at the text. */
+export function FormRow({ label, detail, children }: { label: ReactNode; detail?: ReactNode; children: ReactNode }) {
+  return (
+    <div className="relative flex min-h-11 items-center justify-between gap-4 px-4 py-2 text-sm [&+&]:before:absolute [&+&]:before:top-0 [&+&]:before:right-0 [&+&]:before:left-4 [&+&]:before:border-t-[0.5px] [&+&]:before:border-separator">
+      <div className="flex min-w-0 flex-col">
+        <span>{label}</span>
+        {detail && <span className="text-xs text-label-secondary">{detail}</span>}
+      </div>
+      <div className="flex min-w-0 items-center gap-2 text-[13px] text-label-secondary">{children}</div>
+    </div>
   );
 }
 
 export function ErrorNote({ children }: { children: ReactNode }) {
   return (
-    <div role="alert" className="flex items-start gap-2 rounded-lg bg-accent-faint px-3 py-2 text-sm text-zinc-700 dark:text-zinc-200">
-      <Icon name="alert" className="mt-0.5 size-4 shrink-0 text-accent-strong" />
+    <div role="alert" className="flex items-start gap-2 rounded-[var(--radius-control)] bg-accent-faint px-3 py-2.5 text-[13px] text-label shadow-[inset_0_0_0_0.5px_var(--color-accent-strong)]">
+      <Icon name="alert" className="mt-px size-4 shrink-0 text-accent-strong" />
       <div className="min-w-0 whitespace-pre-line">{children}</div>
+    </div>
+  );
+}
+
+export function Notice({ children }: { children: ReactNode }) {
+  return (
+    <div role="status" className="flex items-start gap-2 rounded-[var(--radius-control)] bg-accent-faint px-3 py-2.5 text-[13px] text-label">
+      <Icon name="check" className="mt-px size-4 shrink-0 text-accent-strong" />
+      <div className="min-w-0">{children}</div>
     </div>
   );
 }
@@ -160,6 +271,9 @@ const PATHS: Record<string, string> = {
   list: "M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01",
   gear: "M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Zm7.4-3a7.4 7.4 0 0 0-.1-1.2l2-1.6-2-3.4-2.4 1a7.5 7.5 0 0 0-2-1.2L14.5 3h-5l-.4 2.6a7.5 7.5 0 0 0-2 1.2l-2.4-1-2 3.4 2 1.6a7.4 7.4 0 0 0 0 2.4l-2 1.6 2 3.4 2.4-1a7.5 7.5 0 0 0 2 1.2l.4 2.6h5l.4-2.6a7.5 7.5 0 0 0 2-1.2l2.4 1 2-3.4-2-1.6c.1-.4.1-.8.1-1.2Z",
   clock: "M12 7v5l3 2m6-2a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z",
+  link: "M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1",
+  search: "M11 18a7 7 0 1 0 0-14 7 7 0 0 0 0 14Zm9 2-4-4",
+  chevrons: "M8 9.5 12 6l4 3.5M8 14.5l4 3.5 4-3.5",
   external: "M14 4h6v6m0-6L10 14M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5",
 };
 
@@ -222,7 +336,7 @@ export function RingIcon({
     >
       <span
         className={`absolute rounded-full transition-colors duration-300 ${
-          filled ? "bg-accent" : muted ? "bg-zinc-100 dark:bg-zinc-800" : "bg-accent-faint"
+          filled ? "bg-accent" : muted ? "bg-fill" : "bg-accent-faint"
         }`}
         style={{ inset: stroke + 1 }}
       />
@@ -252,7 +366,7 @@ export function RingIcon({
       <Icon
         name={icon}
         className={`relative size-3.5 transition-colors duration-300 ${
-          filled ? "text-white dark:text-zinc-950" : muted ? "text-zinc-400" : "text-accent-strong"
+          filled ? "text-accent-on" : muted ? "text-label-tertiary" : "text-accent-strong"
         }`}
       />
     </span>

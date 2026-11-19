@@ -1,12 +1,13 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 import { api, errorMessage } from "../lib/ipc";
-import { formatDuration, looksLikeUrl, pickHeight, STANDARD_HEIGHTS } from "../lib/format";
+import { formatDuration, heightLabel, looksLikeUrl, pickHeight, STANDARD_HEIGHTS } from "../lib/format";
 import type { DownloadOptions, PlaylistProbe, ProbeResult, VideoProbe } from "../lib/types";
 import { useQueue } from "../stores/queue";
 import { optionsFromSettings, useSettings } from "../stores/settings";
-import { OptionsPanel } from "./OptionsPanel";
+import { OptionsPanel, shortPath } from "./OptionsPanel";
 import { QueueList } from "./QueueList";
-import { Button, Card, ErrorNote, Icon, Spinner, Thumb, inputClass } from "./ui";
+import { Button, Checkbox, ErrorNote, Group, Icon, Notice, Spinner, Thumb } from "./ui";
 
 export function DownloadView() {
   const settings = useSettings((s) => s.settings);
@@ -19,6 +20,8 @@ export function DownloadView() {
   const [notice, setNotice] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const probeId = useRef(0);
+  // The action bar is portalled here so it spans the window while the column stays narrow.
+  const [barSlot, setBarSlot] = useState<HTMLDivElement | null>(null);
 
   useEffect(() => inputRef.current?.focus(), []);
 
@@ -74,163 +77,198 @@ export function DownloadView() {
   }
 
   return (
-    <div className="flex flex-col gap-4">
-      <form
-        className="flex gap-2"
-        onSubmit={(e) => {
-          e.preventDefault();
-          void runProbe();
-        }}
-      >
-        <input
-          ref={inputRef}
-          className={`${inputClass} h-11 min-w-0 flex-1 text-base`}
-          placeholder="Paste a video, playlist or channel link"
-          value={url}
-          onChange={(e) => setUrl(e.target.value)}
-          onPaste={(e) => {
-            const text = e.clipboardData.getData("text").trim();
-            if (looksLikeUrl(text)) {
-              e.preventDefault();
-              setUrl(text);
-              void runProbe(text);
-            }
+    <div className="flex min-h-full flex-col">
+      <div className="mx-auto flex w-full max-w-[640px] flex-1 flex-col gap-6 px-5 pt-8 pb-8">
+        <form
+          className="flex h-12 items-center gap-3 rounded-[var(--radius-group)] bg-surface pr-1.5 pl-4 elev-group transition-shadow focus-within:focus-ring"
+          onSubmit={(e) => {
+            e.preventDefault();
+            void runProbe();
           }}
-          spellCheck={false}
-          autoComplete="off"
-          aria-label="Link to download"
-        />
-        <Button variant="secondary" className="h-11" onClick={pasteFromClipboard} title="Paste from clipboard">
-          <Icon name="clipboard" /> Paste
-        </Button>
-        <Button type="submit" variant="primary" className="h-11 min-w-24" disabled={probing || !url.trim()}>
-          {probing ? <Spinner /> : "Fetch"}
-        </Button>
-      </form>
+        >
+          <Icon name="link" className="size-4 shrink-0 text-label-secondary" />
+          <input
+            ref={inputRef}
+            className="min-w-0 flex-1 bg-transparent text-sm text-label outline-none placeholder:text-label-tertiary"
+            placeholder="Paste a video, playlist or channel link"
+            value={url}
+            onChange={(e) => setUrl(e.target.value)}
+            onPaste={(e) => {
+              const text = e.clipboardData.getData("text").trim();
+              if (looksLikeUrl(text)) {
+                e.preventDefault();
+                setUrl(text);
+                void runProbe(text);
+              }
+            }}
+            spellCheck={false}
+            autoComplete="off"
+            aria-label="Link to download"
+          />
+          <Button variant="ghost" onClick={pasteFromClipboard} title="Paste from clipboard">
+            <Icon name="clipboard" className="size-3.5" /> Paste
+          </Button>
+          {/* Fetch is the primary action until there's something to download. */}
+          <Button type="submit" variant={result ? "secondary" : "primary"} className="min-w-18" disabled={probing || !url.trim()}>
+            {probing ? <Spinner className="size-3.5" /> : "Fetch"}
+          </Button>
+        </form>
 
-      {notice && (
-        <div role="status" className="flex items-center gap-2 rounded-lg bg-accent-faint px-3 py-2 text-sm text-zinc-700 dark:text-zinc-200">
-          <Icon name="check" /> {notice}
-        </div>
-      )}
-      {error && <ErrorNote>{error}</ErrorNote>}
-      {probing && (
-        <Card className="flex items-center gap-3 text-sm text-zinc-500 dark:text-zinc-400">
-          <Spinner /> Reading link… (playlists and channels can take a moment)
-        </Card>
-      )}
+        {notice && <Notice>{notice}</Notice>}
+        {error && <ErrorNote>{error}</ErrorNote>}
+        {probing && (
+          <div className="flex items-center gap-2.5 px-1 text-[13px] text-label-secondary">
+            <Spinner className="size-3.5" /> Reading link… playlists and channels can take a moment.
+          </div>
+        )}
 
-      {result?.kind === "video" && (
-        <VideoCard
-          video={result}
-          options={options}
-          onOptions={setOptions}
-          onDownload={async () => {
-            await api.enqueue([
-              { url: result.url, videoId: result.id, title: result.title, thumbnail: result.thumbnail, options, playlist: null },
-            ]);
-            reset(`Added “${result.title}” to the queue`);
-          }}
-        />
-      )}
+        {result?.kind === "video" && (
+          <VideoSection
+            video={result}
+            options={options}
+            onOptions={setOptions}
+            barSlot={barSlot}
+            onDownload={async () => {
+              await api.enqueue([
+                { url: result.url, videoId: result.id, title: result.title, thumbnail: result.thumbnail, options, playlist: null },
+              ]);
+              reset(`Added “${result.title}” to the queue.`);
+            }}
+          />
+        )}
 
-      {result?.kind === "playlist" && (
-        <PlaylistPicker
-          playlist={result}
-          options={options}
-          onOptions={setOptions}
-          onDownload={async (indices) => {
-            const items = result.entries
-              .filter((e) => indices.has(e.index))
-              .map((e) => ({
-                url: e.url,
-                videoId: e.id,
-                title: e.title,
-                thumbnail: e.thumbnail,
-                options,
-                playlist: { title: result.title, index: e.index },
-              }));
-            await api.enqueue(items);
-            reset(`Added ${items.length} item${items.length === 1 ? "" : "s"} from “${result.title}” to the queue`);
-          }}
-        />
-      )}
+        {result?.kind === "playlist" && (
+          <PlaylistSection
+            playlist={result}
+            options={options}
+            onOptions={setOptions}
+            barSlot={barSlot}
+            onDownload={async (indices) => {
+              const items = result.entries
+                .filter((e) => indices.has(e.index))
+                .map((e) => ({
+                  url: e.url,
+                  videoId: e.id,
+                  title: e.title,
+                  thumbnail: e.thumbnail,
+                  options,
+                  playlist: { title: result.title, index: e.index },
+                }));
+              await api.enqueue(items);
+              reset(`Added ${items.length} item${items.length === 1 ? "" : "s"} from “${result.title}” to the queue.`);
+            }}
+          />
+        )}
 
-      {!result && !probing && !error && !hasJobs && (
-        <div className="flex flex-col items-center gap-2 py-16 text-center text-zinc-500 dark:text-zinc-400">
-          <Icon name="download" className="size-8 text-zinc-300 dark:text-zinc-600" />
-          <p className="text-sm">Paste a link from YouTube or another supported site to get started.</p>
-          <p className="text-xs">Videos, playlists and channels all work.</p>
-        </div>
-      )}
+        {!result && !probing && !error && !hasJobs && (
+          <div className="flex flex-col items-center gap-3 py-16 text-center">
+            <span className="flex size-14 items-center justify-center rounded-2xl bg-accent-soft text-accent-strong">
+              <Icon name="download" className="size-6" />
+            </span>
+            <div>
+              <p className="text-[15px] font-semibold">Paste a link to get started</p>
+              <p className="mt-1 text-[13px] text-label-secondary">YouTube and hundreds of other sites. Videos, playlists and channels all work.</p>
+            </div>
+          </div>
+        )}
 
-      <QueueList />
+        <QueueList />
+      </div>
+      <div ref={setBarSlot} className="sticky bottom-0 empty:hidden" />
     </div>
   );
 }
 
-function VideoCard({
+/** Bottom bar with the page's one primary action and a summary of exactly what it will do. */
+function ActionBar({ slot, title, detail, children }: { slot: HTMLElement | null; title: ReactNode; detail: ReactNode; children: ReactNode }) {
+  if (!slot) return null;
+  return createPortal(
+    <div className="flex h-15 items-center justify-between gap-4 border-t-[0.5px] border-separator px-5 material-bar">
+      <div className="flex min-w-0 flex-col">
+        <span className="text-[13px] font-medium">{title}</span>
+        <span className="truncate text-xs text-label-secondary">{detail}</span>
+      </div>
+      {children}
+    </div>,
+    slot,
+  );
+}
+
+function summary(options: DownloadOptions, folder: string): string {
+  const parts =
+    options.mode === "audio"
+      ? ["Audio", options.audioFormat.toUpperCase()]
+      : ["Video", options.maxHeight ? heightLabel(options.maxHeight) : "Best quality", options.videoContainer.toUpperCase()];
+  return [...parts, folder].join(" · ");
+}
+
+function useBusy() {
+  const [busy, setBusy] = useState(false);
+  const run = async (fn: () => Promise<void>) => {
+    setBusy(true);
+    try {
+      await fn();
+    } finally {
+      setBusy(false);
+    }
+  };
+  return [busy, run] as const;
+}
+
+function VideoSection({
   video,
   options,
   onOptions,
   onDownload,
+  barSlot,
 }: {
   video: VideoProbe;
   options: DownloadOptions;
   onOptions: (o: DownloadOptions) => void;
   onDownload: () => Promise<void>;
+  barSlot: HTMLElement | null;
 }) {
-  const [busy, setBusy] = useState(false);
+  const [busy, run] = useBusy();
   return (
-    <Card className="flex flex-col gap-4">
-      <div className="flex gap-4">
-        <Thumb src={video.thumbnail} alt="" className="aspect-video w-44" />
+    <>
+      <div className="flex items-center gap-4">
+        <Thumb src={video.thumbnail} alt="" className="aspect-video w-36 !rounded-lg" />
         <div className="min-w-0 flex-1">
-          <h2 className="line-clamp-2 font-semibold text-zinc-900 dark:text-zinc-50">{video.title}</h2>
-          <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
-            {[video.uploader, formatDuration(video.duration)].filter(Boolean).join(" · ")}
+          <h2 className="line-clamp-2 text-xl leading-[25px] font-semibold tracking-tight">{video.title}</h2>
+          <p className="mt-0.5 text-[13px] text-label-secondary">
+            {[video.uploader, formatDuration(video.duration), video.heights[0] && `up to ${video.heights[0]}p`].filter(Boolean).join(" · ")}
           </p>
-          {video.heights.length > 0 && (
-            <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">Up to {video.heights[0]}p available</p>
-          )}
         </div>
       </div>
       <OptionsPanel options={options} onChange={onOptions} heights={video.heights} subtitleLangs={video.subtitleLangs} />
-      <div className="flex justify-end">
-        <Button
-          variant="primary"
-          disabled={busy}
-          onClick={async () => {
-            setBusy(true);
-            try {
-              await onDownload();
-            } finally {
-              setBusy(false);
-            }
-          }}
-        >
-          <Icon name="download" /> Download {options.mode === "audio" ? options.audioFormat.toUpperCase() : "video"}
+      <ActionBar slot={barSlot} title="1 video" detail={summary(options, shortPath(options.outputDir))}>
+        <Button variant="primary" size="lg" disabled={busy} onClick={() => run(onDownload)}>
+          <Icon name="download" /> Download
         </Button>
-      </div>
-    </Card>
+      </ActionBar>
+    </>
   );
 }
 
-function PlaylistPicker({
+function PlaylistSection({
   playlist,
   options,
   onOptions,
   onDownload,
+  barSlot,
 }: {
   playlist: PlaylistProbe;
   options: DownloadOptions;
   onOptions: (o: DownloadOptions) => void;
   onDownload: (indices: Set<number>) => Promise<void>;
+  barSlot: HTMLElement | null;
 }) {
   const [selected, setSelected] = useState<Set<number>>(() => new Set(playlist.entries.map((e) => e.index)));
   const [filter, setFilter] = useState("");
-  const [busy, setBusy] = useState(false);
+  const [busy, run] = useBusy();
   const visible = playlist.entries.filter((e) => e.title.toLowerCase().includes(filter.trim().toLowerCase()));
+  const total = playlist.entries.length;
+  const allSelected = selected.size === total;
 
   const toggle = (index: number) =>
     setSelected((s) => {
@@ -241,73 +279,80 @@ function PlaylistPicker({
     });
 
   return (
-    <Card className="flex flex-col gap-4">
-      <div className="flex items-start gap-3">
-        <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-accent-soft text-accent-strong">
-          <Icon name="list" className="size-5" />
-        </div>
+    <>
+      <div className="flex items-center gap-4">
+        <span className="flex size-16 shrink-0 items-center justify-center rounded-[14px] bg-accent-soft text-accent-strong">
+          <Icon name="list" className="size-6" />
+        </span>
         <div className="min-w-0">
-          <h2 className="line-clamp-2 font-semibold text-zinc-900 dark:text-zinc-50">{playlist.title}</h2>
-          <p className="text-sm text-zinc-500 dark:text-zinc-400">
-            {[playlist.uploader, `${playlist.entries.length} videos`].filter(Boolean).join(" · ")} · saved into a folder named after the playlist
+          <h2 className="line-clamp-2 text-xl leading-[25px] font-semibold tracking-tight">{playlist.title}</h2>
+          <p className="mt-0.5 text-[13px] text-label-secondary">
+            {[playlist.uploader, `${total} videos`, "Saved into a folder named after the playlist"].filter(Boolean).join(" · ")}
           </p>
         </div>
       </div>
 
-      {playlist.entries.length === 0 ? (
+      {total === 0 ? (
         <ErrorNote>This playlist is empty or private.</ErrorNote>
       ) : (
-        <>
-          <div className="flex flex-wrap items-center gap-2">
-            <Button size="sm" onClick={() => setSelected(new Set(playlist.entries.map((e) => e.index)))}>
-              Select all
-            </Button>
-            <Button size="sm" onClick={() => setSelected(new Set())}>
-              Select none
-            </Button>
-            <input
-              className={`${inputClass} h-7 min-w-0 flex-1 text-xs`}
-              placeholder="Filter by title"
-              value={filter}
-              onChange={(e) => setFilter(e.target.value)}
-              aria-label="Filter playlist"
-            />
-            <span className="text-xs text-zinc-500 dark:text-zinc-400">{selected.size} selected</span>
-          </div>
-          <ul className="max-h-72 overflow-y-auto rounded-lg ring-1 ring-zinc-200 dark:ring-zinc-800">
-            {visible.map((e) => (
-              <li key={`${e.index}-${e.id}`} className="border-b border-zinc-100 last:border-0 dark:border-zinc-800">
-                <label className="flex cursor-pointer items-center gap-3 px-3 py-2 hover:bg-zinc-50 dark:hover:bg-zinc-800/60">
-                  <input type="checkbox" className="size-4" checked={selected.has(e.index)} onChange={() => toggle(e.index)} />
-                  <span className="w-8 shrink-0 text-right text-xs tabular-nums text-zinc-400">{e.index}</span>
-                  <Thumb src={e.thumbnail} alt="" className="aspect-video w-16" />
-                  <span className="min-w-0 flex-1 truncate text-sm text-zinc-800 dark:text-zinc-100">{e.title}</span>
-                  <span className="shrink-0 text-xs tabular-nums text-zinc-500">{formatDuration(e.duration)}</span>
-                </label>
-              </li>
-            ))}
-            {visible.length === 0 && <li className="px-3 py-4 text-center text-sm text-zinc-500">No titles match.</li>}
+        <Group
+          header={<span className="tabular-nums">{selected.size} of {total} selected</span>}
+          accessory={
+            <div className="flex items-center gap-2 font-normal">
+              <label className="flex h-6 w-40 items-center gap-1.5 rounded-md bg-fill px-2 transition-colors focus-within:bg-surface focus-within:focus-ring">
+                <Icon name="search" className="size-3.5 shrink-0 text-label-tertiary" />
+                <input
+                  className="min-w-0 flex-1 bg-transparent text-xs text-label outline-none placeholder:text-label-tertiary"
+                  placeholder="Filter"
+                  value={filter}
+                  onChange={(e) => setFilter(e.target.value)}
+                  aria-label="Filter playlist by title"
+                />
+              </label>
+              <Button
+                size="sm"
+                variant="plain"
+                onClick={() => setSelected(allSelected ? new Set() : new Set(playlist.entries.map((e) => e.index)))}
+              >
+                {allSelected ? "Select None" : "Select All"}
+              </Button>
+            </div>
+          }
+          className="max-h-[316px] overflow-y-auto"
+        >
+          <ul>
+            {visible.map((e) => {
+              const on = selected.has(e.index);
+              return (
+                <li
+                  key={`${e.index}-${e.id}`}
+                  className="relative [&+&]:before:absolute [&+&]:before:top-0 [&+&]:before:right-0 [&+&]:before:left-[144px] [&+&]:before:border-t-[0.5px] [&+&]:before:border-separator"
+                >
+                  <label className="flex h-[52px] items-center gap-3 px-4 transition-colors hover:bg-accent-faint">
+                    <Checkbox checked={on} onChange={() => toggle(e.index)} />
+                    <span className="w-5 shrink-0 text-right text-[11px] tabular-nums text-label-tertiary">{e.index}</span>
+                    <Thumb src={e.thumbnail} alt="" className={`aspect-video w-14 transition-opacity ${on ? "" : "opacity-50"}`} />
+                    <span className={`min-w-0 flex-1 truncate text-sm ${on ? "" : "text-label-secondary"}`}>{e.title}</span>
+                    <span className="shrink-0 text-xs tabular-nums text-label-secondary">{formatDuration(e.duration)}</span>
+                  </label>
+                </li>
+              );
+            })}
+            {visible.length === 0 && <li className="px-4 py-5 text-center text-[13px] text-label-secondary">No titles match “{filter}”.</li>}
           </ul>
-        </>
+        </Group>
       )}
 
       <OptionsPanel options={options} onChange={onOptions} heights={STANDARD_HEIGHTS} />
-      <div className="flex justify-end">
-        <Button
-          variant="primary"
-          disabled={busy || selected.size === 0}
-          onClick={async () => {
-            setBusy(true);
-            try {
-              await onDownload(selected);
-            } finally {
-              setBusy(false);
-            }
-          }}
-        >
-          <Icon name="download" /> Download {selected.size} {selected.size === 1 ? "item" : "items"}
+      <ActionBar
+        slot={barSlot}
+        title={selected.size === 0 ? "Nothing selected" : `${selected.size} ${selected.size === 1 ? "item" : "items"}`}
+        detail={summary(options, `${shortPath(options.outputDir)}/${playlist.title}`)}
+      >
+        <Button variant="primary" size="lg" disabled={busy || selected.size === 0} onClick={() => run(() => onDownload(selected))}>
+          <Icon name="download" /> {selected.size > 0 ? `Download ${selected.size}` : "Download"}
         </Button>
-      </div>
-    </Card>
+      </ActionBar>
+    </>
   );
 }
