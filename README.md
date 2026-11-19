@@ -62,6 +62,8 @@ for your OS.
 npm install
 npm run tauri dev      # run the app with hot reload
 npm run dev            # UI only, in a browser, with a mocked backend (src/dev/mock.ts)
+npm run reset          # remove installed yt-dlp/ffmpeg/deno to test first-run setup
+                       #   add -- --all to also wipe settings and history, -- --dry-run to preview
 npm test               # frontend unit tests (Vitest)
 npm run typecheck
 cd src-tauri && cargo test && cargo clippy --all-targets
