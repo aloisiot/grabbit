@@ -3,7 +3,7 @@ import { DownloadView } from "./components/DownloadView";
 import { HistoryView } from "./components/HistoryView";
 import { SettingsView } from "./components/SettingsView";
 import { SetupScreen } from "./components/Components";
-import { Button, ErrorNote, Icon, Spinner } from "./components/ui";
+import { Button, ErrorNote, Icon, Logo, Spinner } from "./components/ui";
 import { errorMessage } from "./lib/ipc";
 import { useDeps } from "./stores/deps";
 import { isActive, useQueue } from "./stores/queue";
@@ -51,9 +51,7 @@ export default function App() {
     <div className="flex h-full flex-col">
       <header className="grid h-[52px] shrink-0 grid-cols-[1fr_auto_1fr] items-center gap-4 border-b-[0.5px] border-separator px-5 material-bar">
         <div className="flex items-center gap-2 text-sm font-semibold">
-          <span className="flex size-[22px] items-center justify-center rounded-md bg-accent text-accent-on">
-            <Icon name="download" className="size-3.5" />
-          </span>
+          <Logo className="size-[22px]" />
           Grabbit
         </div>
         <nav role="tablist" aria-label="Sections" className="inline-flex gap-0.5 rounded-lg bg-fill p-0.5">

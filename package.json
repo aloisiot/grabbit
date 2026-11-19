@@ -10,7 +10,8 @@
     "tauri": "tauri",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
-    "reset": "node scripts/reset-app-data.mjs"
+    "reset": "node scripts/reset-app-data.mjs",
+    "icons": "tauri icon src-tauri/icons/app-icon.svg"
   },
   "dependencies": {
     "@tauri-apps/api": "^2",

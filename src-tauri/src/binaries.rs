@@ -81,25 +81,35 @@ fn system_dirs() -> Vec<PathBuf> {
     let mut dirs: Vec<PathBuf> = std::env::var_os("PATH")
         .map(|p| std::env::split_paths(&p).collect())
         .unwrap_or_default();
-    #[cfg(unix)]
-    {
-        let mut extra = vec![
-            PathBuf::from("/opt/homebrew/bin"),
-            PathBuf::from("/usr/local/bin"),
-            PathBuf::from("/usr/bin"),
-        ];
-        if let Some(home) = std::env::var_os("HOME") {
-            let home = PathBuf::from(home);
-            extra.push(home.join(".local/bin"));
-            extra.push(home.join(".deno/bin"));
-        }
-        for d in extra {
-            if !dirs.contains(&d) {
-                dirs.push(d);
-            }
+    for d in extra_dirs() {
+        if !dirs.contains(&d) {
+            dirs.push(d);
         }
     }
     dirs
+}
+
+/// Common install locations that GUI apps don't get in PATH (notably macOS,
+/// where apps launched from Finder or the Dock don't inherit the shell's PATH).
+#[cfg(unix)]
+fn extra_dirs() -> Vec<PathBuf> {
+    let mut extra = vec![
+        PathBuf::from("/opt/homebrew/bin"),
+        PathBuf::from("/usr/local/bin"),
+        PathBuf::from("/usr/bin"),
+    ];
+    if let Some(home) = std::env::var_os("HOME") {
+        let home = PathBuf::from(home);
+        extra.push(home.join(".local/bin"));
+        extra.push(home.join(".deno/bin"));
+    }
+    extra
+}
+
+/// Windows GUI apps get the full user PATH, so nothing extra is needed.
+#[cfg(not(unix))]
+fn extra_dirs() -> Vec<PathBuf> {
+    Vec::new()
 }
 
 /// Find an executable: managed copy first, then the system.
