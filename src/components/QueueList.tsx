@@ -89,9 +89,9 @@ function JobRow({ job }: { job: Job }) {
           <p
             className={`mt-0.5 truncate text-xs ${
               job.status === "error"
-                ? "text-red-600 dark:text-red-400"
+                ? "text-accent-strong"
                 : job.status === "done"
-                  ? "text-emerald-700 dark:text-emerald-400"
+                  ? "text-accent"
                   : "text-zinc-500 dark:text-zinc-400"
             }`}
             title={detail}
@@ -103,7 +103,7 @@ function JobRow({ job }: { job: Job }) {
               <ProgressBar
                 value={job.status === "downloading" ? job.percent : null}
                 indeterminate={job.status !== "downloading" || job.percent == null}
-                tone={job.status === "processing" ? "amber" : "indigo"}
+                tone={job.status === "processing" ? "soft" : "accent"}
               />
             </div>
           )}

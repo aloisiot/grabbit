@@ -9,6 +9,12 @@ const host = process.env.TAURI_DEV_HOST;
 export default defineConfig(() => ({
   plugins: [react(), tailwindcss()],
 
+  // The browser preview's mock backend (src/dev/mock.ts) is imported lazily;
+  // pre-bundle it so Vite doesn't answer "504 Outdated Optimize Dep".
+  optimizeDeps: {
+    include: ["@tauri-apps/api/mocks"],
+  },
+
   // Vite options tailored for Tauri development and only applied in `tauri dev` or `tauri build`
   //
   // 1. prevent Vite from obscuring rust errors

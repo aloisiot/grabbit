@@ -9,10 +9,22 @@ import type { ComponentStatus, EnqueueItem, HistoryEntry, Job, ProbeResult } fro
 
 const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
+const MB = 1024 * 1024;
+const VERSIONS = { "yt-dlp": "2026.10.26", ffmpeg: "9.0.2", deno: "2.9.8" } as const;
+// Rough real sizes/speeds; yt-dlp's first run is the slow "testing" step.
+const MOCK_SIZES = {
+  "yt-dlp": { size: 36 * MB, rate: 6 * MB, test: 2500 },
+  ffmpeg: { size: 54 * MB, rate: 7 * MB, test: 700 },
+  deno: { size: 41 * MB, rate: 8 * MB, test: 500 },
+} as const;
+
 export function installMocks() {
   mockWindows("main");
 
-  let installed = !new URLSearchParams(location.search).has("setup");
+  const params = new URLSearchParams(location.search);
+  // ?setup starts on the first-run screen; ?fail=deno makes that download fail once.
+  const installedSet = new Set<ComponentStatus["id"]>(params.has("setup") ? [] : ["yt-dlp", "ffmpeg", "deno"]);
+  const failOnce = new Set(params.getAll("fail"));
   let concurrency = 2;
   const jobs: Job[] = [];
   let history: HistoryEntry[] = [
@@ -33,10 +45,10 @@ export function installMocks() {
   const status = (): ComponentStatus[] =>
     (["yt-dlp", "ffmpeg", "deno"] as const).map((id) => ({
       id,
-      installed,
-      managed: installed,
-      path: installed ? `/Users/me/Library/Application Support/app.grabbit.desktop/bin/${id}` : null,
-      version: installed ? { "yt-dlp": "2026.10.26", ffmpeg: "9.0.2", deno: "2.9.8" }[id] : null,
+      installed: installedSet.has(id),
+      managed: installedSet.has(id),
+      path: installedSet.has(id) ? `/Users/me/Library/Application Support/app.grabbit.desktop/bin/${id}` : null,
+      version: installedSet.has(id) ? VERSIONS[id] : null,
       required: id !== "deno",
     }));
 
@@ -92,16 +104,36 @@ export function installMocks() {
       switch (cmd) {
         case "deps_status":
           return status();
-        case "deps_install":
-          for (const component of ["yt-dlp", "ffmpeg", "deno"] as const) {
-            for (let d = 0; d <= 40_000_000; d += 4_000_000) {
-              void emit("deps://progress", { component, stage: "downloading", downloaded: d, total: 40_000_000, part: 1, parts: 1, error: null });
-              await wait(60);
+        case "deps_install": {
+          const ids = (a.components as ComponentStatus["id"][] | null) ?? (["yt-dlp", "ffmpeg", "deno"] as const).filter((id) => !installedSet.has(id));
+          const send = (component: string, stage: string, extra: object = {}) =>
+            void emit("deps://progress", { component, stage, downloaded: 0, total: null, speed: null, version: null, path: null, error: null, ...extra });
+          ids.forEach((id) => send(id, "queued"));
+          const one = async (id: ComponentStatus["id"]) => {
+            const { size, rate, test } = MOCK_SIZES[id];
+            await wait(300);
+            send(id, "connecting");
+            await wait(500);
+            for (let d = 0; d < size; d += rate / 10) {
+              send(id, "downloading", { downloaded: d, total: size, speed: rate * (0.85 + Math.random() * 0.3) });
+              await wait(100);
             }
-            void emit("deps://progress", { component, stage: "done", downloaded: 0, total: null, part: 0, parts: 0, error: null });
-          }
-          installed = true;
+            if (failOnce.delete(id)) {
+              send(id, "error", { error: "Download interrupted: connection reset. Check your connection and retry." });
+              throw `${id}: Download interrupted`;
+            }
+            send(id, "extracting", { downloaded: size, total: size });
+            await wait(600);
+            send(id, "testing", { downloaded: size, total: size });
+            await wait(test);
+            installedSet.add(id);
+            send(id, "done", { downloaded: size, total: size, version: VERSIONS[id], path: `/Users/me/Library/Application Support/app.grabbit.desktop/bin/${id}` });
+          };
+          const results = await Promise.allSettled(ids.map(one));
+          const errors = results.filter((r): r is PromiseRejectedResult => r.status === "rejected").map((r) => String(r.reason));
+          if (errors.length) throw errors.join("\n");
           return null;
+        }
         case "ytdlp_check_update":
           return { current: "2026.10.26", latest: "2026.11.12", updateAvailable: true, managed: true };
         case "probe": {

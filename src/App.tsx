@@ -5,7 +5,7 @@ import { SettingsView } from "./components/SettingsView";
 import { SetupScreen } from "./components/Components";
 import { ErrorNote, Icon, Spinner } from "./components/ui";
 import { errorMessage } from "./lib/ipc";
-import { missingRequired, useDeps } from "./stores/deps";
+import { useDeps } from "./stores/deps";
 import { isActive, useQueue } from "./stores/queue";
 import { useSettings } from "./stores/settings";
 
@@ -22,10 +22,11 @@ export default function App() {
   const [bootError, setBootError] = useState<string | null>(null);
   const settingsLoaded = useSettings((s) => s.loaded);
   const deps = useDeps((s) => s.status);
+  const setupVisible = useDeps((s) => s.setupVisible);
   const active = useQueue((s) => s.jobs.filter((j) => isActive(j) || j.status === "queued").length);
 
   useEffect(() => {
-    Promise.all([useSettings.getState().init(), useDeps.getState().refresh(), useQueue.getState().init()]).catch((e) =>
+    Promise.all([useSettings.getState().init(), useDeps.getState().init(), useQueue.getState().init()]).catch((e) =>
       setBootError(errorMessage(e)),
     );
   }, []);
@@ -44,13 +45,13 @@ export default function App() {
       </div>
     );
   }
-  if (missingRequired(deps)) return <SetupScreen />;
+  if (setupVisible) return <SetupScreen />;
 
   return (
     <div className="flex h-full flex-col">
       <header className="flex shrink-0 items-center gap-4 border-b border-zinc-200 bg-white/80 px-5 py-2.5 backdrop-blur dark:border-zinc-800 dark:bg-zinc-900/80">
         <div className="flex items-center gap-2 font-semibold text-zinc-900 dark:text-zinc-50">
-          <span className="flex size-7 items-center justify-center rounded-lg bg-indigo-600 text-white">
+          <span className="flex size-7 items-center justify-center rounded-lg bg-accent text-white dark:text-zinc-950">
             <Icon name="download" />
           </span>
           Grabbit
@@ -71,7 +72,7 @@ export default function App() {
               <Icon name={t.icon} />
               {t.label}
               {t.id === "download" && active > 0 && tab !== "download" && (
-                <span className="rounded-full bg-indigo-600 px-1.5 text-[10px] font-semibold text-white">{active}</span>
+                <span className="rounded-full bg-accent px-1.5 text-[10px] font-semibold text-white tabular-nums dark:text-zinc-950">{active}</span>
               )}
             </button>
           ))}
@@ -80,7 +81,7 @@ export default function App() {
           <button
             type="button"
             onClick={() => setTab("settings")}
-            className="ml-auto text-xs text-amber-700 hover:underline dark:text-amber-400"
+            className="ml-auto text-xs text-accent-strong hover:underline"
           >
             Deno missing — some YouTube videos may fail
           </button>

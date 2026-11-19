@@ -8,6 +8,7 @@
 
 use std::ffi::OsString;
 use std::path::{Path, PathBuf};
+use std::time::{Duration, Instant};
 
 use futures_util::StreamExt;
 use serde::Serialize;
@@ -143,25 +144,26 @@ pub struct ComponentStatus {
     pub required: bool,
 }
 
-pub async fn status(app: &AppHandle) -> Vec<ComponentStatus> {
-    let mut out = Vec::new();
-    for c in Component::ALL {
-        let primary = c.executables()[0];
-        let found = find_executable(app, primary);
+/// `with_versions` runs each tool once to read its version (slower).
+pub async fn status(app: &AppHandle, with_versions: bool) -> Vec<ComponentStatus> {
+    // Version checks run in parallel: a freshly downloaded yt-dlp can take a
+    // few seconds on its first run.
+    futures_util::future::join_all(Component::ALL.into_iter().map(|c| async move {
+        let found = find_executable(app, c.executables()[0]);
         let version = match &found {
-            Some((p, _)) => version_of(p, c).await,
-            None => None,
+            Some((p, _)) if with_versions => version_of(p, c).await,
+            _ => None,
         };
-        out.push(ComponentStatus {
+        ComponentStatus {
             id: c.id(),
             installed: found.is_some(),
             managed: found.as_ref().is_some_and(|(_, m)| *m),
             path: found.map(|(p, _)| p.to_string_lossy().into_owned()),
             version,
             required: c != Component::Deno,
-        });
-    }
-    out
+        }
+    }))
+    .await
 }
 
 pub async fn version_of(path: &Path, c: Component) -> Option<String> {
@@ -373,58 +375,151 @@ pub fn http_client() -> Result<reqwest::Client, String> {
 // Install
 // ---------------------------------------------------------------------------
 
-#[derive(Serialize, Clone, Debug)]
+#[derive(Serialize, Clone, Debug, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct InstallProgress {
     pub component: &'static str,
-    /// "downloading" | "extracting" | "done" | "error"
+    /// "queued" | "connecting" | "downloading" | "extracting" | "testing" | "done" | "error"
     pub stage: &'static str,
+    /// Bytes downloaded so far, across every file of this component.
     pub downloaded: u64,
+    /// Total bytes to download, when the servers report it.
     pub total: Option<u64>,
-    /// 1-based index of the file being fetched, and how many there are.
-    pub part: usize,
-    pub parts: usize,
+    /// Smoothed download speed in bytes per second.
+    pub speed: Option<f64>,
+    /// Version the freshly installed tool reports (stage "done").
+    pub version: Option<String>,
+    pub path: Option<String>,
     pub error: Option<String>,
 }
 
-fn emit_progress(app: &AppHandle, p: InstallProgress) {
+pub fn emit_progress(app: &AppHandle, p: InstallProgress) {
     let _ = app.emit("deps://progress", p);
 }
 
-/// Download, verify and install one component into the managed bin dir.
-pub async fn install(app: &AppHandle, c: Component) -> Result<(), String> {
-    let result = install_inner(app, c).await;
-    let (stage, error) = match &result {
-        Ok(()) => ("done", None),
-        Err(e) => ("error", Some(e.clone())),
-    };
-    emit_progress(
-        app,
-        InstallProgress {
-            component: c.id(),
-            stage,
-            downloaded: 0,
-            total: None,
-            part: 0,
-            parts: 0,
-            error,
-        },
-    );
-    result
+/// Tracks one component's progress and sends throttled updates to the UI.
+struct Reporter<'a> {
+    app: &'a AppHandle,
+    c: Component,
+    downloaded: u64,
+    total: Option<u64>,
+    speed: Option<f64>,
+    window_start: Instant,
+    window_bytes: u64,
+    last_emit: Instant,
 }
 
-async fn install_inner(app: &AppHandle, c: Component) -> Result<(), String> {
-    let dir = bin_dir(app)?;
-    tokio::fs::create_dir_all(&dir)
-        .await
-        .map_err(|e| format!("Can't create {}: {e}", dir.display()))?;
-    let client = http_client()?;
-    let list = assets(c)?;
-    let parts = list.len();
+impl<'a> Reporter<'a> {
+    fn new(app: &'a AppHandle, c: Component) -> Self {
+        let now = Instant::now();
+        Self {
+            app,
+            c,
+            downloaded: 0,
+            total: None,
+            speed: None,
+            window_start: now,
+            window_bytes: 0,
+            last_emit: now,
+        }
+    }
 
-    for (i, asset) in list.iter().enumerate() {
-        let part = i + 1;
-        let sums = client
+    fn emit(&self, stage: &'static str) {
+        emit_progress(
+            self.app,
+            InstallProgress {
+                component: self.c.id(),
+                stage,
+                downloaded: self.downloaded,
+                total: self.total,
+                speed: if stage == "downloading" {
+                    self.speed
+                } else {
+                    None
+                },
+                ..Default::default()
+            },
+        );
+    }
+
+    fn add_bytes(&mut self, n: u64) {
+        self.downloaded += n;
+        self.window_bytes += n;
+        let elapsed = self.window_start.elapsed();
+        if elapsed >= Duration::from_millis(300) {
+            let instant = self.window_bytes as f64 / elapsed.as_secs_f64();
+            self.speed = Some(match self.speed {
+                Some(s) => s * 0.6 + instant * 0.4,
+                None => instant,
+            });
+            self.window_start = Instant::now();
+            self.window_bytes = 0;
+        }
+        if self.last_emit.elapsed() >= Duration::from_millis(100) {
+            self.last_emit = Instant::now();
+            self.emit("downloading");
+        }
+    }
+}
+
+/// Lets the UI show every requested component as waiting right away.
+pub fn announce_queued(app: &AppHandle, components: &[Component]) {
+    for c in components {
+        emit_progress(
+            app,
+            InstallProgress {
+                component: c.id(),
+                stage: "queued",
+                ..Default::default()
+            },
+        );
+    }
+}
+
+/// Download, verify, install and test one component in the managed bin dir.
+/// Progress goes to the UI as `deps://progress` events; the final event is
+/// "done" (with the tool's version) or "error".
+pub async fn install(app: &AppHandle, c: Component) -> Result<(), String> {
+    let mut r = Reporter::new(app, c);
+    match install_inner(&mut r).await {
+        Ok((path, version)) => {
+            emit_progress(
+                app,
+                InstallProgress {
+                    component: c.id(),
+                    stage: "done",
+                    downloaded: r.downloaded,
+                    total: r.total,
+                    version,
+                    path: Some(path.to_string_lossy().into_owned()),
+                    ..Default::default()
+                },
+            );
+            Ok(())
+        }
+        Err(e) => {
+            emit_progress(
+                app,
+                InstallProgress {
+                    component: c.id(),
+                    stage: "error",
+                    error: Some(e.clone()),
+                    ..Default::default()
+                },
+            );
+            Err(e)
+        }
+    }
+}
+
+/// Expected checksum and (if known) size of one asset.
+async fn prepare(
+    client: &reqwest::Client,
+    c: Component,
+    asset: &Asset,
+) -> Result<(String, Option<u64>), String> {
+    let sums = async {
+        client
             .get(&asset.sums_url)
             .send()
             .await
@@ -432,39 +527,65 @@ async fn install_inner(app: &AppHandle, c: Component) -> Result<(), String> {
             .map_err(|e| format!("Couldn't fetch checksums for {}: {e}", c.id()))?
             .text()
             .await
-            .map_err(|e| e.to_string())?;
-        let expected = parse_sums(&sums, &asset.sums_name)
-            .ok_or_else(|| format!("No checksum published for {}", asset.sums_name))?;
+            .map_err(|e| e.to_string())
+    };
+    // Content-Length from a HEAD request; reqwest's content_length() is 0 for HEAD.
+    let size = async {
+        let resp = client
+            .head(&asset.url)
+            .send()
+            .await
+            .ok()?
+            .error_for_status()
+            .ok()?;
+        resp.headers()
+            .get(reqwest::header::CONTENT_LENGTH)?
+            .to_str()
+            .ok()?
+            .parse::<u64>()
+            .ok()
+    };
+    let (sums, size) = tokio::join!(sums, size);
+    let expected = parse_sums(&sums?, &asset.sums_name)
+        .ok_or_else(|| format!("No checksum published for {}", asset.sums_name))?;
+    Ok((expected, size))
+}
 
+async fn install_inner(r: &mut Reporter<'_>) -> Result<(PathBuf, Option<String>), String> {
+    let (app, c) = (r.app, r.c);
+    let dir = bin_dir(app)?;
+    tokio::fs::create_dir_all(&dir)
+        .await
+        .map_err(|e| format!("Can't create {}: {e}", dir.display()))?;
+    let client = http_client()?;
+    let list = assets(c)?;
+
+    r.emit("connecting");
+    let prepared: Vec<(String, Option<u64>)> =
+        futures_util::future::join_all(list.iter().map(|a| prepare(&client, c, a)))
+            .await
+            .into_iter()
+            .collect::<Result<_, _>>()?;
+    r.total = prepared.iter().map(|(_, size)| *size).sum::<Option<u64>>();
+    r.emit("downloading");
+
+    for (asset, (expected, _)) in list.iter().zip(&prepared) {
         let tmp = dir.join(format!(".download-{}", uuid::Uuid::new_v4()));
-        let downloaded = download_to(app, &client, c, asset, &tmp, part, parts).await;
-        let actual = match downloaded {
+        let actual = match download_to(r, &client, asset, &tmp).await {
             Ok(h) => h,
             Err(e) => {
                 let _ = tokio::fs::remove_file(&tmp).await;
                 return Err(e);
             }
         };
-        if actual != expected {
+        if &actual != expected {
             let _ = tokio::fs::remove_file(&tmp).await;
             return Err(format!(
-                "Checksum mismatch for {} — the download was corrupted or tampered with. Please try again.",
+                "Checksum mismatch for {}: the download was corrupted or tampered with. Please try again.",
                 asset.sums_name
             ));
         }
-
-        emit_progress(
-            app,
-            InstallProgress {
-                component: c.id(),
-                stage: "extracting",
-                downloaded: 0,
-                total: None,
-                part,
-                parts,
-                error: None,
-            },
-        );
+        r.emit("extracting");
         let (tmp2, dir2, asset2) = (tmp.clone(), dir.clone(), asset.clone());
         let res = tokio::task::spawn_blocking(move || extract(&tmp2, &asset2, &dir2))
             .await
@@ -473,18 +594,28 @@ async fn install_inner(app: &AppHandle, c: Component) -> Result<(), String> {
         let _ = tokio::fs::remove_file(&tmp).await;
         res?;
     }
-    Ok(())
+
+    // Run the new tool once: confirms it works on this machine and gets its
+    // version. (The first run of a fresh download can take a few seconds while
+    // the OS checks it.)
+    r.emit("testing");
+    let path = dir.join(exe(c.executables()[0]));
+    let version = version_of(&path, c).await;
+    if version.is_none() {
+        return Err(format!(
+            "{} was downloaded but wouldn't run on this computer. Try Reinstall, or install it with your package manager.",
+            c.id()
+        ));
+    }
+    Ok((path, version))
 }
 
 /// Stream `asset.url` to `dest`, returning its SHA-256 (lowercase hex).
 async fn download_to(
-    app: &AppHandle,
+    r: &mut Reporter<'_>,
     client: &reqwest::Client,
-    c: Component,
     asset: &Asset,
     dest: &Path,
-    part: usize,
-    parts: usize,
 ) -> Result<String, String> {
     let resp = client
         .get(&asset.url)
@@ -492,36 +623,20 @@ async fn download_to(
         .await
         .and_then(|r| r.error_for_status())
         .map_err(|e| format!("Couldn't download {}: {e}", asset.sums_name))?;
-    let total = resp.content_length();
     let mut file = tokio::fs::File::create(dest)
         .await
         .map_err(|e| e.to_string())?;
     let mut hasher = Sha256::new();
-    let mut downloaded: u64 = 0;
-    let mut last_emit: u64 = 0;
     let mut stream = resp.bytes_stream();
     while let Some(chunk) = stream.next().await {
-        let chunk = chunk.map_err(|e| format!("Download interrupted: {e}"))?;
+        let chunk = chunk
+            .map_err(|e| format!("Download interrupted: {e}. Check your connection and retry."))?;
         hasher.update(&chunk);
         file.write_all(&chunk).await.map_err(|e| e.to_string())?;
-        downloaded += chunk.len() as u64;
-        if downloaded - last_emit >= 256 * 1024 || Some(downloaded) == total {
-            last_emit = downloaded;
-            emit_progress(
-                app,
-                InstallProgress {
-                    component: c.id(),
-                    stage: "downloading",
-                    downloaded,
-                    total,
-                    part,
-                    parts,
-                    error: None,
-                },
-            );
-        }
+        r.add_bytes(chunk.len() as u64);
     }
     file.flush().await.map_err(|e| e.to_string())?;
+    r.emit("downloading");
     Ok(hex::encode(hasher.finalize()))
 }
 

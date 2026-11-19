@@ -108,13 +108,18 @@ export interface ComponentStatus {
   required: boolean;
 }
 
+export type InstallStage = "queued" | "connecting" | "downloading" | "extracting" | "testing" | "done" | "error";
+
 export interface InstallProgress {
   component: ComponentId;
-  stage: "downloading" | "extracting" | "done" | "error";
+  stage: InstallStage;
+  /** Bytes downloaded so far across all files of the component. */
   downloaded: number;
   total: number | null;
-  part: number;
-  parts: number;
+  /** Smoothed bytes per second while downloading. */
+  speed: number | null;
+  version: string | null;
+  path: string | null;
   error: string | null;
 }
 

@@ -109,7 +109,7 @@ export function DownloadView() {
       </form>
 
       {notice && (
-        <div role="status" className="flex items-center gap-2 rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300">
+        <div role="status" className="flex items-center gap-2 rounded-lg bg-accent-faint px-3 py-2 text-sm text-zinc-700 dark:text-zinc-200">
           <Icon name="check" /> {notice}
         </div>
       )}
@@ -243,7 +243,7 @@ function PlaylistPicker({
   return (
     <Card className="flex flex-col gap-4">
       <div className="flex items-start gap-3">
-        <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600 dark:bg-indigo-950 dark:text-indigo-300">
+        <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-accent-soft text-accent-strong">
           <Icon name="list" className="size-5" />
         </div>
         <div className="min-w-0">
@@ -278,7 +278,7 @@ function PlaylistPicker({
             {visible.map((e) => (
               <li key={`${e.index}-${e.id}`} className="border-b border-zinc-100 last:border-0 dark:border-zinc-800">
                 <label className="flex cursor-pointer items-center gap-3 px-3 py-2 hover:bg-zinc-50 dark:hover:bg-zinc-800/60">
-                  <input type="checkbox" className="size-4 accent-indigo-600" checked={selected.has(e.index)} onChange={() => toggle(e.index)} />
+                  <input type="checkbox" className="size-4" checked={selected.has(e.index)} onChange={() => toggle(e.index)} />
                   <span className="w-8 shrink-0 text-right text-xs tabular-nums text-zinc-400">{e.index}</span>
                   <Thumb src={e.thumbnail} alt="" className="aspect-video w-16" />
                   <span className="min-w-0 flex-1 truncate text-sm text-zinc-800 dark:text-zinc-100">{e.title}</span>

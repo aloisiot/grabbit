@@ -13,7 +13,8 @@ import type {
 } from "./types";
 
 export const api = {
-  depsStatus: () => invoke<ComponentStatus[]>("deps_status"),
+  /** `versions: false` skips running each tool (fast startup check). */
+  depsStatus: (versions = true) => invoke<ComponentStatus[]>("deps_status", { versions }),
   depsInstall: (components?: ComponentId[]) => invoke<void>("deps_install", { components: components ?? null }),
   ytdlpCheckUpdate: () => invoke<UpdateInfo>("ytdlp_check_update"),
 

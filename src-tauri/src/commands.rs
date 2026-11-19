@@ -1,5 +1,7 @@
 //! The `#[tauri::command]` surface the React UI calls.
 
+use std::sync::atomic::{AtomicBool, Ordering};
+
 use serde::Serialize;
 use tauri::{AppHandle, Manager};
 use tauri_plugin_opener::OpenerExt;
@@ -13,31 +15,50 @@ use crate::ytdlp::{self, ProbeResult};
 // ----- components ----------------------------------------------------------
 
 #[tauri::command]
-pub async fn deps_status(app: AppHandle) -> Vec<ComponentStatus> {
-    binaries::status(&app).await
+pub async fn deps_status(app: AppHandle, versions: Option<bool>) -> Vec<ComponentStatus> {
+    binaries::status(&app, versions.unwrap_or(true)).await
+}
+
+static INSTALLING: AtomicBool = AtomicBool::new(false);
+
+/// Clears the "install running" flag however the install ends.
+struct InstallGuard;
+impl Drop for InstallGuard {
+    fn drop(&mut self) {
+        INSTALLING.store(false, Ordering::SeqCst);
+    }
 }
 
 /// Install (or reinstall/update) the given components, or every missing one.
+/// Components download in parallel; per-component progress arrives as
+/// `deps://progress` events.
 #[tauri::command]
 pub async fn deps_install(app: AppHandle, components: Option<Vec<String>>) -> Result<(), String> {
     if queue::has_active(&app) {
         return Err("Wait for active downloads to finish before updating components.".into());
     }
+    if INSTALLING.swap(true, Ordering::SeqCst) {
+        return Err("Components are already being installed.".into());
+    }
+    let _guard = InstallGuard;
+
     let wanted: Vec<Component> = match components {
         Some(ids) => ids.iter().filter_map(|id| Component::from_id(id)).collect(),
-        None => binaries::status(&app)
-            .await
+        // Only a file check here: running each tool for its version is slow.
+        None => Component::ALL
             .into_iter()
-            .filter(|s| !s.installed)
-            .filter_map(|s| Component::from_id(s.id))
+            .filter(|c| binaries::find_executable(&app, c.executables()[0]).is_none())
             .collect(),
     };
-    let mut errors = Vec::new();
-    for c in wanted {
-        if let Err(e) = binaries::install(&app, c).await {
-            errors.push(format!("{}: {e}", c.id()));
-        }
-    }
+    binaries::announce_queued(&app, &wanted);
+
+    let results =
+        futures_util::future::join_all(wanted.iter().map(|c| binaries::install(&app, *c))).await;
+    let errors: Vec<String> = wanted
+        .iter()
+        .zip(results)
+        .filter_map(|(c, r)| r.err().map(|e| format!("{}: {e}", c.id())))
+        .collect();
     if errors.is_empty() {
         Ok(())
     } else {

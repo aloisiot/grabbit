@@ -1,14 +1,43 @@
 @import "tailwindcss";
 
+/*
+ * One accent color. Every other tone is mixed from it, so changing
+ * --accent-base re-themes the whole app.
+ *
+ *   accent         buttons, progress, selected states
+ *   accent-strong  hover/pressed, emphasised text and icons (errors too)
+ *   accent-soft    tinted backgrounds, progress tracks
+ *   accent-faint   subtle notice backgrounds
+ */
+@theme {
+  --accent-base: oklch(0.55 0.2 275);
+
+  --color-accent: var(--accent-base);
+  --color-accent-strong: color-mix(in oklab, var(--accent-base) 72%, black);
+  --color-accent-soft: color-mix(in oklab, var(--accent-base) 14%, white);
+  --color-accent-faint: color-mix(in oklab, var(--accent-base) 6%, white);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-accent: color-mix(in oklab, var(--accent-base) 85%, white);
+    --color-accent-strong: color-mix(in oklab, var(--accent-base) 55%, white);
+    --color-accent-soft: color-mix(in oklab, var(--accent-base) 28%, var(--color-zinc-900));
+    --color-accent-faint: color-mix(in oklab, var(--accent-base) 14%, var(--color-zinc-900));
+  }
+}
+
+/* Indeterminate bar: moves with transform, so it never triggers layout. */
 @keyframes slide {
-  0% { left: -35%; }
-  100% { left: 100%; }
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(300%); }
 }
 
 :root {
   color-scheme: light dark;
   font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   -webkit-font-smoothing: antialiased;
+  accent-color: var(--color-accent);
 }
 
 html, body, #root {
@@ -34,4 +63,9 @@ body {
 input, textarea, .select-text {
   user-select: text;
   -webkit-user-select: text;
+}
+
+/* Numbers that update live keep a constant width. */
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
 }
