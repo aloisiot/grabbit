@@ -258,3 +258,21 @@ export function RingIcon({
     </span>
   );
 }
+
+/** The Grabbit mark (same geometry as src-tauri/icons/app-icon.svg), themed with the accent. */
+export function Logo({ className = "size-7" }: { className?: string }) {
+  return (
+    <svg viewBox="100 100 824 824" className={className} aria-hidden="true">
+      <rect x="100" y="100" width="824" height="824" rx="186" className="fill-accent" />
+      <g fill="#fff">
+        <rect x="404" y="206" width="100" height="320" rx="50" transform="rotate(-9 452 520)" />
+        <rect x="520" y="206" width="100" height="320" rx="50" transform="rotate(9 572 520)" />
+        <circle cx="512" cy="622" r="186" />
+      </g>
+      <g fill="none" strokeWidth={52} strokeLinecap="round" strokeLinejoin="round" className="stroke-accent">
+        <path d="M512 548 V704" />
+        <path d="M450 646 L512 708 L574 646" />
+      </g>
+    </svg>
+  );
+}

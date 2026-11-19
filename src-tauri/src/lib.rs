@@ -7,6 +7,10 @@ mod ytdlp;
 
 use std::sync::Arc;
 
+/// Set by build.rs from the icon files; reading it here ties recompilation
+/// (and so the icons `generate_context!()` embeds) to icon changes.
+const _ICONS_HASH: &str = env!("GRABBIT_ICONS_HASH");
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()

@@ -1,0 +1,35 @@
+<!--
+  Grabbit app icon (source). Regenerate every platform size with:
+    npm run icons
+  Colors are the app accent (oklch(0.55 0.2 275) ≈ #555de3) and tones mixed from it.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#6f76ea"/>
+      <stop offset="1" stop-color="#454bc4"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Rounded square with macOS-style margins (824px artwork on a 1024px canvas) -->
+  <rect x="100" y="100" width="824" height="824" rx="186" fill="url(#bg)"/>
+
+  <!-- Ears -->
+  <g transform="rotate(-9 452 520)">
+    <rect x="404" y="206" width="100" height="320" rx="50" fill="#fff"/>
+    <rect x="435" y="258" width="38" height="200" rx="19" fill="#dfe0fa"/>
+  </g>
+  <g transform="rotate(9 572 520)">
+    <rect x="520" y="206" width="100" height="320" rx="50" fill="#fff"/>
+    <rect x="551" y="258" width="38" height="200" rx="19" fill="#dfe0fa"/>
+  </g>
+
+  <!-- Head -->
+  <circle cx="512" cy="622" r="186" fill="#fff"/>
+
+  <!-- Download arrow as the face -->
+  <g fill="none" stroke="#4a50d0" stroke-width="46" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M512 548 V704"/>
+    <path d="M450 646 L512 708 L574 646"/>
+  </g>
+</svg>

@@ -3,7 +3,7 @@ import { DownloadView } from "./components/DownloadView";
 import { HistoryView } from "./components/HistoryView";
 import { SettingsView } from "./components/SettingsView";
 import { SetupScreen } from "./components/Components";
-import { ErrorNote, Icon, Spinner } from "./components/ui";
+import { ErrorNote, Icon, Logo, Spinner } from "./components/ui";
 import { errorMessage } from "./lib/ipc";
 import { useDeps } from "./stores/deps";
 import { isActive, useQueue } from "./stores/queue";
@@ -51,9 +51,7 @@ export default function App() {
     <div className="flex h-full flex-col">
       <header className="flex shrink-0 items-center gap-4 border-b border-zinc-200 bg-white/80 px-5 py-2.5 backdrop-blur dark:border-zinc-800 dark:bg-zinc-900/80">
         <div className="flex items-center gap-2 font-semibold text-zinc-900 dark:text-zinc-50">
-          <span className="flex size-7 items-center justify-center rounded-lg bg-accent text-white dark:text-zinc-950">
-            <Icon name="download" />
-          </span>
+          <Logo className="size-7" />
           Grabbit
         </div>
         <nav className="flex gap-1" aria-label="Sections">
