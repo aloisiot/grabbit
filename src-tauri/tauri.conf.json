@@ -37,6 +37,9 @@
     "shortDescription": "Download video and audio with yt-dlp",
     "longDescription": "Grabbit is a free, open-source desktop front-end for yt-dlp: paste a link, pick video or audio and quality, and download \u2014 with a queue, playlists, subtitles and history.",
     "copyright": "Copyright (c) 2026 Grabbit contributors",
-    "license": "MIT"
+    "license": "MIT",
+    "macOS": {
+      "signingIdentity": "-"
+    }
   }
 }

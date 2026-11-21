@@ -45,12 +45,20 @@ src-tauri/src/
 Download the installer for your system from the
 [Releases](../../releases) page.
 
-The builds aren't code-signed yet, so your OS will warn the first time:
+- **macOS**: pick `aarch64` for Apple Silicon (M1 and later) or `x64` for Intel.
+  Open the `.dmg` and drag Grabbit to Applications.
+- **Windows**: run the `-setup.exe` (or the `.msi`).
+- **Linux**: install the `.deb` or `.rpm`, or `chmod +x` the `.AppImage` and run it.
 
-- **macOS**: right-click the app → **Open** → **Open**. Or run
-  `xattr -dr com.apple.quarantine /Applications/Grabbit.app`.
+The builds aren't signed with a paid developer certificate yet, so your OS
+warns the first time you open Grabbit:
+
+- **macOS**: you'll see "Apple could not verify Grabbit…". Click **Done**,
+  open **System Settings → Privacy & Security**, scroll down and click
+  **Open Anyway** next to the Grabbit message, then confirm. You only do
+  this once. (On macOS 14 and earlier you can instead right-click the app →
+  **Open** → **Open**.)
 - **Windows**: on the SmartScreen prompt, click **More info** → **Run anyway**.
-- **Linux**: use the `.deb`, or `chmod +x` the `.AppImage` and run it.
 
 ## Development
 
