@@ -60,6 +60,38 @@ warns the first time you open Grabbit:
   **Open** → **Open**.)
 - **Windows**: on the SmartScreen prompt, click **More info** → **Run anyway**.
 
+## Code signing policy
+
+Windows releases are signed through SignPath. Free code signing provided by
+[SignPath.io](https://about.signpath.io), certificate by
+[SignPath Foundation](https://signpath.org).
+
+Only the Grabbit installers and the Grabbit executable built by this
+repository's [release workflow](.github/workflows/release.yml) on
+GitHub-hosted runners are signed. The third-party tools Grabbit downloads at
+runtime (yt-dlp, FFmpeg, Deno) are not signed by this project.
+
+Team roles:
+
+- Committers and reviewers: [@aloisiot](https://github.com/aloisiot). Changes
+  from outside contributors are reviewed by a committer before they are merged.
+- Approvers: [@aloisiot](https://github.com/aloisiot). Every signing request
+  is approved by hand in SignPath.
+
+### Privacy policy
+
+Grabbit has no accounts, analytics or telemetry, and it does not send any
+information about you to the project. It only connects to other systems to do
+what you ask or to make that possible:
+
+- the sites whose links you paste, when you look up or download them;
+- the official release pages of yt-dlp, FFmpeg and Deno (listed in
+  [How it works](#how-it-works)), to download those tools on first run and
+  when you update them.
+
+Those sites see the requests like any other visitor and have their own privacy
+policies. Settings and download history stay on your computer.
+
 ## Landing page
 
 The website in `site/` is published to GitHub Pages by

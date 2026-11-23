@@ -7,8 +7,31 @@ on:
     tags: ["v*"]
 
 jobs:
+  create-release:
+    name: Create draft release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    outputs:
+      release-id: ${{ steps.create.outputs.release-id }}
+    steps:
+      - id: create
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          # Reuse the draft if this is a re-run.
+          gh release view "$TAG" --repo "$GITHUB_REPOSITORY" > /dev/null 2>&1 ||
+            gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --draft --verify-tag \
+              --title "Grabbit $TAG" \
+              --notes "See the assets below to download and install this version."
+          id=$(gh api "repos/$GITHUB_REPOSITORY/releases" --paginate \
+            --jq ".[] | select(.tag_name == \"$TAG\") | .id" | head -n1)
+          echo "release-id=$id" >> "$GITHUB_OUTPUT"
+
   build:
     name: Build (${{ matrix.label }})
+    needs: create-release
     permissions:
       contents: write
     strategy:
@@ -21,9 +44,6 @@ jobs:
           - label: macOS Intel
             os: macos-latest
             args: --target x86_64-apple-darwin
-          - label: Windows
-            os: windows-latest
-            args: ""
           - label: Linux
             os: ubuntu-22.04
             args: ""
@@ -55,13 +75,125 @@ jobs:
       - uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          # Code signing (optional). Add these repository secrets to sign builds:
+          # macOS code signing (optional). Add these repository secrets to sign builds:
           # APPLE_CERTIFICATE, APPLE_CERTIFICATE_PASSWORD, APPLE_SIGNING_IDENTITY,
           # APPLE_ID, APPLE_PASSWORD, APPLE_TEAM_ID — see https://v2.tauri.app/distribute/sign/macos/
         with:
-          tagName: ${{ github.ref_name }}
-          releaseName: Grabbit ${{ github.ref_name }}
-          releaseBody: See the assets below to download and install this version.
-          releaseDraft: true
-          prerelease: false
+          releaseId: ${{ needs.create-release.outputs.release-id }}
           args: ${{ matrix.args }}
+
+  # Windows is built in separate steps so the binaries can be signed through
+  # SignPath (https://signpath.org) between building and bundling:
+  #   1. build grabbit.exe        2. sign it
+  #   3. bundle NSIS + MSI        4. sign the installers   5. attach to the release
+  # Signing is skipped (unsigned installers, as before) until the
+  # SIGNPATH_API_TOKEN secret and SIGNPATH_ORGANIZATION_ID variable exist.
+  windows:
+    name: Build (Windows)
+    needs: create-release
+    runs-on: windows-latest
+    permissions:
+      actions: read
+      contents: write
+    env:
+      SIGNPATH_ENABLED: ${{ secrets.SIGNPATH_API_TOKEN != '' && vars.SIGNPATH_ORGANIZATION_ID != '' }}
+      SIGNPATH_PROJECT_SLUG: ${{ vars.SIGNPATH_PROJECT_SLUG || 'grabbit' }}
+      SIGNPATH_SIGNING_POLICY_SLUG: ${{ vars.SIGNPATH_SIGNING_POLICY_SLUG || 'release-signing' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+          cache: npm
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri -> target
+
+      - run: npm ci
+
+      - name: Build app
+        run: npx tauri build --no-bundle
+
+      - name: Upload unsigned app
+        if: env.SIGNPATH_ENABLED == 'true'
+        id: upload-app
+        uses: actions/upload-artifact@v4
+        with:
+          name: unsigned-app
+          path: src-tauri/target/release/grabbit.exe
+          if-no-files-found: error
+
+      - name: Sign app
+        if: env.SIGNPATH_ENABLED == 'true'
+        uses: signpath/github-action-submit-signing-request@v3
+        with:
+          api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
+          organization-id: ${{ vars.SIGNPATH_ORGANIZATION_ID }}
+          project-slug: ${{ env.SIGNPATH_PROJECT_SLUG }}
+          signing-policy-slug: ${{ env.SIGNPATH_SIGNING_POLICY_SLUG }}
+          artifact-configuration-slug: app
+          github-artifact-id: ${{ steps.upload-app.outputs.artifact-id }}
+          wait-for-completion: true
+          # Each release needs a manual approval in SignPath; allow time for it.
+          wait-for-completion-timeout-in-seconds: 3600
+          output-artifact-directory: signed-app
+
+      - name: Replace app with signed copy
+        if: env.SIGNPATH_ENABLED == 'true'
+        shell: bash
+        run: cp signed-app/grabbit.exe src-tauri/target/release/grabbit.exe
+
+      # --no-binary-patching keeps the signature on grabbit.exe intact. Patching
+      # only records the bundle type for the updater plugin, which Grabbit
+      # doesn't use.
+      - name: Bundle installers
+        run: npx tauri bundle --bundles nsis,msi --no-binary-patching
+
+      - name: Collect installers
+        shell: bash
+        run: |
+          mkdir installers
+          cp src-tauri/target/release/bundle/nsis/*-setup.exe installers/
+          cp src-tauri/target/release/bundle/msi/*.msi installers/
+          ls -l installers
+
+      - name: Upload unsigned installers
+        if: env.SIGNPATH_ENABLED == 'true'
+        id: upload-installers
+        uses: actions/upload-artifact@v4
+        with:
+          name: unsigned-installers
+          path: installers/
+          if-no-files-found: error
+
+      - name: Sign installers
+        if: env.SIGNPATH_ENABLED == 'true'
+        uses: signpath/github-action-submit-signing-request@v3
+        with:
+          api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
+          organization-id: ${{ vars.SIGNPATH_ORGANIZATION_ID }}
+          project-slug: ${{ env.SIGNPATH_PROJECT_SLUG }}
+          signing-policy-slug: ${{ env.SIGNPATH_SIGNING_POLICY_SLUG }}
+          artifact-configuration-slug: installers
+          github-artifact-id: ${{ steps.upload-installers.outputs.artifact-id }}
+          wait-for-completion: true
+          wait-for-completion-timeout-in-seconds: 3600
+          output-artifact-directory: signed-installers
+
+      - name: Use signed installers
+        if: env.SIGNPATH_ENABLED == 'true'
+        shell: bash
+        run: |
+          rm -rf installers
+          mv signed-installers installers
+          ls -l installers
+
+      - name: Attach installers to the release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release upload "$GITHUB_REF_NAME" installers/* --repo "$GITHUB_REPOSITORY" --clobber
