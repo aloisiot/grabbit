@@ -37,6 +37,7 @@ pub fn run() {
             commands::default_download_dir,
             commands::open_file,
             commands::reveal_file,
+            commands::open_link,
         ])
         .build(tauri::generate_context!())
         .expect("error while building Grabbit")

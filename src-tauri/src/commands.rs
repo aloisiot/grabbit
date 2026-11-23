@@ -223,3 +223,48 @@ pub fn reveal_file(app: AppHandle, path: String) -> Result<(), String> {
         }
     }
 }
+
+const REPOSITORY_URL: &str = "https://github.com/aloisiot/grabbit";
+
+/// URL for one of the project's pages. Only these fixed pages can be opened:
+/// the webview never passes a URL of its own.
+fn project_link(kind: &str) -> Option<String> {
+    match kind {
+        "repository" => Some(REPOSITORY_URL.to_string()),
+        "issues" => Some(format!("{REPOSITORY_URL}/issues")),
+        "releases" => Some(format!("{REPOSITORY_URL}/releases")),
+        _ => None,
+    }
+}
+
+/// Open one of the project's pages (About section) in the default browser.
+#[tauri::command]
+pub fn open_link(app: AppHandle, kind: String) -> Result<(), String> {
+    let url = project_link(&kind).ok_or_else(|| format!("Unknown link: {kind}"))?;
+    app.opener()
+        .open_url(url, None::<&str>)
+        .map_err(|e| e.to_string())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::project_link;
+
+    #[test]
+    fn only_fixed_project_links_open() {
+        assert_eq!(
+            project_link("repository").as_deref(),
+            Some("https://github.com/aloisiot/grabbit")
+        );
+        assert_eq!(
+            project_link("issues").as_deref(),
+            Some("https://github.com/aloisiot/grabbit/issues")
+        );
+        assert_eq!(
+            project_link("releases").as_deref(),
+            Some("https://github.com/aloisiot/grabbit/releases")
+        );
+        assert_eq!(project_link("https://example.com"), None);
+        assert_eq!(project_link(""), None);
+    }
+}

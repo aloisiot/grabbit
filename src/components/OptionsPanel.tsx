@@ -8,7 +8,7 @@ export async function pickFolder(current: string): Promise<string | null> {
   return typeof dir === "string" ? dir : null;
 }
 
-const FORMAT_HINT: Record<string, string> = {
+export const FORMAT_HINT: Record<string, string> = {
   mp4: "Plays everywhere",
   mkv: "Keeps the best-quality codecs",
   mp3: "Most compatible",

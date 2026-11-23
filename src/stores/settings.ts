@@ -35,6 +35,8 @@ interface SettingsState {
   loaded: boolean;
   init: () => Promise<void>;
   update: (patch: Partial<Settings>) => Promise<void>;
+  /** Restore every download default (download folder: the system Downloads folder). */
+  reset: () => Promise<void>;
 }
 
 let store: Store | null = null;
@@ -58,6 +60,13 @@ export const useSettings = create<SettingsState>((set, get) => ({
     set({ settings });
     await store?.set("settings", settings);
     if (patch.concurrency !== undefined) await api.setConcurrency(settings.concurrency);
+  },
+
+  reset: async () => {
+    const settings: Settings = { ...DEFAULT_SETTINGS, outputDir: await api.defaultDownloadDir() };
+    set({ settings });
+    await store?.set("settings", settings);
+    await api.setConcurrency(settings.concurrency);
   },
 }));
 

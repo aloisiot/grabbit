@@ -5,7 +5,7 @@ import { isInstalling, overallProgress, percentOf, stageText } from "../lib/inst
 import type { ComponentId, ComponentStatus, InstallProgress, UpdateInfo } from "../lib/types";
 import { useDeps } from "../stores/deps";
 import { isActive, useQueue } from "../stores/queue";
-import { Button, Icon, RingIcon, Spinner } from "./ui";
+import { Button, FormRow, Group, Icon, RingIcon, Spinner } from "./ui";
 
 const INFO: Record<ComponentId, { name: string; about: string; icon: string }> = {
   "yt-dlp": { name: "yt-dlp", about: "download engine", icon: "download" },
@@ -35,7 +35,10 @@ function ComponentRow({ c, onRetry }: { c: ComponentStatus; onRetry?: (id: Compo
   const info = INFO[c.id];
 
   return (
-    <li className="flex h-14 items-center gap-3 px-4" aria-busy={busy}>
+    <li
+      className="relative flex h-14 items-center gap-3 px-4 [&+&]:before:absolute [&+&]:before:top-0 [&+&]:before:right-0 [&+&]:before:left-15 [&+&]:before:border-t-[0.5px] [&+&]:before:border-separator"
+      aria-busy={busy}
+    >
       <RingIcon
         icon={failed ? "alert" : ready ? "check" : info.icon}
         active={busy}
@@ -46,11 +49,11 @@ function ComponentRow({ c, onRetry }: { c: ComponentStatus; onRetry?: (id: Compo
       />
       <div className="min-w-0 flex-1">
         <p className="truncate text-sm leading-5">
-          <span className="font-medium text-zinc-900 dark:text-zinc-50">{info.name}</span>
-          <span className="text-zinc-400 dark:text-zinc-500"> · {info.about}</span>
+          <span className="font-medium text-label">{info.name}</span>
+          <span className="text-label-tertiary"> · {info.about}</span>
         </p>
         <p
-          className={`truncate text-xs leading-4 tabular-nums ${failed ? "text-accent-strong" : "text-zinc-500 dark:text-zinc-400"}`}
+          className={`truncate text-xs leading-4 tabular-nums ${failed ? "text-accent-strong" : "text-label-secondary"}`}
           title={failed ? (progress?.error ?? "") : (c.path ?? "")}
         >
           {status}
@@ -59,7 +62,7 @@ function ComponentRow({ c, onRetry }: { c: ComponentStatus; onRetry?: (id: Compo
       {/* Fixed-width slot so the text column never resizes. */}
       <div className="flex w-14 shrink-0 justify-end">
         {busy && percent != null ? (
-          <span className="text-xs tabular-nums text-zinc-500 dark:text-zinc-400">{Math.floor(percent)}%</span>
+          <span className="text-xs tabular-nums text-label-secondary">{Math.floor(percent)}%</span>
         ) : failed && onRetry ? (
           <button
             type="button"
@@ -77,7 +80,7 @@ function ComponentRow({ c, onRetry }: { c: ComponentStatus; onRetry?: (id: Compo
 export function ComponentList({ onRetry }: { onRetry?: (id: ComponentId) => void }) {
   const status = useDeps((s) => s.status);
   return (
-    <ul className="divide-y divide-zinc-100 dark:divide-zinc-800">
+    <ul>
       {(status ?? []).map((c) => (
         <ComponentRow key={c.id} c={c} onRetry={onRetry} />
       ))}
@@ -202,7 +205,10 @@ export function SetupScreen() {
 // Settings → Components
 // ---------------------------------------------------------------------------
 
-export function ComponentsPanel() {
+const ALL_COMPONENTS: ComponentId[] = ["yt-dlp", "ffmpeg", "deno"];
+
+/** Components as a grouped section: the one current action sits in the header. */
+export function ComponentsGroup() {
   const { status, installing, install, error } = useDeps();
   const downloading = useQueue((s) => s.jobs.some(isActive));
   const [checking, setChecking] = useState(false);
@@ -230,43 +236,75 @@ export function ComponentsPanel() {
     }
   }
 
-  const note = (!installing && error) || message || (downloading ? "Components can be updated once downloads finish." : null);
+  let action: ReactNode;
+  if (missing.length > 0) {
+    action = (
+      <Button size="sm" variant="primary" disabled={locked} onClick={() => install(missing)}>
+        Install Missing
+      </Button>
+    );
+  } else if (update?.updateAvailable) {
+    action = (
+      <Button
+        size="sm"
+        variant="primary"
+        disabled={locked}
+        onClick={async () => {
+          if (await install(["yt-dlp"])) {
+            setUpdate(null);
+            setMessage(null);
+          }
+        }}
+      >
+        {ytdlp?.managed ? "Update yt-dlp" : "Install Managed yt-dlp"}
+      </Button>
+    );
+  } else {
+    action = (
+      <Button size="sm" variant="plain" disabled={checking || installing} onClick={checkUpdate}>
+        {checking ? (
+          <>
+            <Spinner className="size-3" /> Checking…
+          </>
+        ) : (
+          "Check for Updates"
+        )}
+      </Button>
+    );
+  }
+
+  // One line, always present, so messages never move the layout.
+  const note =
+    (!installing && error) ||
+    message ||
+    (downloading
+      ? "Components can be updated once downloads finish."
+      : "yt-dlp changes often as YouTube changes. If downloads start failing, updating it usually fixes them.");
 
   return (
-    <div className="flex flex-col gap-3">
-      <div className="-mx-4 border-y border-zinc-100 dark:border-zinc-800">
-        <ComponentList onRetry={locked ? undefined : (id) => void install([id])} />
-      </div>
-      <p className="h-4 truncate text-xs text-zinc-500 dark:text-zinc-400" aria-live="polite" title={note ?? ""}>
-        {note ?? NBSP}
-      </p>
-      <div className="flex flex-wrap gap-2">
-        <Button onClick={checkUpdate} disabled={checking || installing} className="min-w-48">
-          {checking ? <Spinner /> : <Icon name="retry" />} Check for yt-dlp update
-        </Button>
-        {update?.updateAvailable && (
-          <Button
-            variant="primary"
-            disabled={locked}
-            onClick={async () => {
-              if (await install(["yt-dlp"])) {
-                setUpdate(null);
-                setMessage(null);
-              }
-            }}
-          >
-            {ytdlp?.managed ? "Update yt-dlp" : "Install managed yt-dlp"}
+    <Group
+      header="Components"
+      accessory={action}
+      footer={
+        <p className="truncate" aria-live="polite" title={note}>
+          {note}
+        </p>
+      }
+    >
+      <ComponentList onRetry={locked ? undefined : (id) => void install([id])} />
+      <div className="border-t-[0.5px] border-separator">
+        <FormRow label="Reinstall components" detail="Download fresh copies of all three">
+          <Button size="sm" disabled={locked} onClick={() => install(ALL_COMPONENTS)}>
+            {installing ? (
+              <>
+                <Spinner className="size-3" /> Installing…
+              </>
+            ) : (
+              "Reinstall"
+            )}
           </Button>
-        )}
-        {missing.length > 0 && (
-          <Button variant="primary" disabled={locked} onClick={() => install(missing)}>
-            Install missing
-          </Button>
-        )}
-        <Button variant="ghost" disabled={locked} onClick={() => install(["yt-dlp", "ffmpeg", "deno"])}>
-          Reinstall all
-        </Button>
+        </FormRow>
       </div>
-    </div>
+    </Group>
   );
 }

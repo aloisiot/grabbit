@@ -35,6 +35,8 @@ export const api = {
   defaultDownloadDir: () => invoke<string>("default_download_dir"),
   openFile: (path: string) => invoke<void>("open_file", { path }),
   revealFile: (path: string) => invoke<void>("reveal_file", { path }),
+  /** Opens a fixed project page (About section) in the browser. */
+  openLink: (kind: "repository" | "issues" | "releases") => invoke<void>("open_link", { kind }),
 };
 
 export const events = {

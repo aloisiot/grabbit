@@ -239,7 +239,12 @@ export function installMocks() {
         case "reveal_file":
           console.info(`[mock] ${cmd}`, a.path);
           return null;
+        case "open_link":
+          console.info("[mock] open_link", a.kind);
+          return null;
         // plugins
+        case "plugin:app|version":
+          return "0.1.0";
         case "plugin:store|load":
           return 1;
         case "plugin:store|get":
@@ -250,8 +255,19 @@ export function installMocks() {
         case "plugin:dialog|open":
           return "/Users/me/Movies";
         case "plugin:dialog|ask":
-        case "plugin:dialog|message":
           return true;
+        // ask()/confirm() go through `message` and compare the clicked button's
+        // label with the OK label, so answer as if OK/Yes was clicked.
+        case "plugin:dialog|message": {
+          // Custom labels arrive as { OkCancelCustom: [ok, cancel] }, { OkCustom: ok }
+          // or { YesNoCancelCustom: [yes, no, cancel] }; presets as "YesNo", "OkCancel"…
+          const b = a.buttons as string | Record<string, string | string[]> | undefined;
+          if (b && typeof b === "object") {
+            const labels = Object.values(b)[0];
+            return Array.isArray(labels) ? labels[0] : labels;
+          }
+          return b === "YesNo" || b === "YesNoCancel" ? "Yes" : "Ok";
+        }
         default:
           console.warn("[mock] unhandled command", cmd, args);
           return null;
