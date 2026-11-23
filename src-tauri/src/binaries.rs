@@ -633,8 +633,7 @@ async fn download_to(
     let mut hasher = Sha256::new();
     let mut stream = resp.bytes_stream();
     while let Some(chunk) = stream.next().await {
-        let chunk = chunk
-            .map_err(|e| format!("E:download_interrupted:{e}"))?;
+        let chunk = chunk.map_err(|e| format!("E:download_interrupted:{e}"))?;
         hasher.update(&chunk);
         file.write_all(&chunk).await.map_err(|e| e.to_string())?;
         r.add_bytes(chunk.len() as u64);
@@ -707,7 +706,6 @@ fn extract(archive_path: &Path, asset: &Asset, dir: &Path) -> Result<(), String>
                     .map_err(|e| format!("Couldn't run tar: {e}"))?;
                 if !status.success() {
                     return Err("E:xz_failed".to_string());
-
                 }
                 let mut found = Vec::new();
                 for member in &asset.members {

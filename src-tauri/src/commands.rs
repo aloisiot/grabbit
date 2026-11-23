@@ -104,8 +104,7 @@ pub async fn probe(app: AppHandle, url: String) -> Result<ProbeResult, String> {
     if !(url.starts_with("http://") || url.starts_with("https://")) {
         return Err("E:invalid_url".into());
     }
-    let (ytdlp_path, _) = binaries::find_executable(&app, "yt-dlp")
-        .ok_or("E:ytdlp_missing")?;
+    let (ytdlp_path, _) = binaries::find_executable(&app, "yt-dlp").ok_or("E:ytdlp_missing")?;
     let deno = binaries::find_executable(&app, "deno").map(|(p, _)| p);
     let tools = ytdlp::Tools {
         ffmpeg: None,
@@ -221,7 +220,6 @@ pub fn reveal_file(app: AppHandle, path: String) -> Result<(), String> {
                 .open_path(dir.to_string_lossy(), None::<&str>)
                 .map_err(|e| e.to_string()),
             None => Err("E:file_missing".into()),
-
         }
     }
 }

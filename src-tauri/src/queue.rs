@@ -353,8 +353,7 @@ async fn run_job(app: AppHandle, job: Job) {
 
 /// Run yt-dlp for one job. Returns the final file path on success.
 async fn execute(app: &AppHandle, job: &Job) -> Result<Option<String>, String> {
-    let (ytdlp_path, _) = binaries::find_executable(app, "yt-dlp")
-        .ok_or("E:ytdlp_missing")?;
+    let (ytdlp_path, _) = binaries::find_executable(app, "yt-dlp").ok_or("E:ytdlp_missing")?;
     let ffmpeg = binaries::find_executable(app, "ffmpeg").map(|(p, _)| p);
     let deno = binaries::find_executable(app, "deno").map(|(p, _)| p);
     let tools = ytdlp::Tools {

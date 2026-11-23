@@ -747,10 +747,7 @@ mod tests {
             ),
             "Something odd happened"
         );
-        assert_eq!(
-            friendly_error(&[], Some(2)),
-            "E:exit_code:2"
-        );
+        assert_eq!(friendly_error(&[], Some(2)), "E:exit_code:2");
         assert_eq!(friendly_error(&[], None), "E:stopped");
         assert_eq!(postprocessor_label("Merger"), "pp:Merger");
     }
