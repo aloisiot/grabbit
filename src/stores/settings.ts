@@ -1,9 +1,12 @@
 import { create } from "zustand";
 import { load, type Store } from "@tauri-apps/plugin-store";
+import { isLocale, useLocale, type LanguagePref } from "../i18n";
 import { api } from "../lib/ipc";
 import type { AudioFormat, DownloadOptions, Mode, VideoContainer } from "../lib/types";
 
 export interface Settings {
+  /** Interface language; "system" follows the OS. */
+  language: LanguagePref;
   outputDir: string;
   mode: Mode;
   /** Preferred max height; null = best available. */
@@ -18,6 +21,7 @@ export interface Settings {
 }
 
 export const DEFAULT_SETTINGS: Settings = {
+  language: "system",
   outputDir: "",
   mode: "video",
   maxHeight: 1080,
@@ -35,7 +39,7 @@ interface SettingsState {
   loaded: boolean;
   init: () => Promise<void>;
   update: (patch: Partial<Settings>) => Promise<void>;
-  /** Restore every download default (download folder: the system Downloads folder). */
+  /** Restore every download default (download folder: the system Downloads folder). Keeps the language. */
   reset: () => Promise<void>;
 }
 
@@ -50,7 +54,9 @@ export const useSettings = create<SettingsState>((set, get) => ({
     store = await load("settings.json", { defaults: {}, autoSave: 200 });
     const saved = (await store.get<Partial<Settings>>("settings")) ?? {};
     const settings: Settings = { ...DEFAULT_SETTINGS, ...saved };
+    if (settings.language !== "system" && !isLocale(settings.language)) settings.language = "system";
     if (!settings.outputDir) settings.outputDir = await api.defaultDownloadDir();
+    useLocale.getState().setLanguage(settings.language);
     set({ settings, loaded: true });
     await api.setConcurrency(settings.concurrency);
   },
@@ -58,12 +64,18 @@ export const useSettings = create<SettingsState>((set, get) => ({
   update: async (patch) => {
     const settings = { ...get().settings, ...patch };
     set({ settings });
+    if (patch.language !== undefined) useLocale.getState().setLanguage(settings.language);
     await store?.set("settings", settings);
     if (patch.concurrency !== undefined) await api.setConcurrency(settings.concurrency);
   },
 
   reset: async () => {
-    const settings: Settings = { ...DEFAULT_SETTINGS, outputDir: await api.defaultDownloadDir() };
+    const settings: Settings = {
+      ...DEFAULT_SETTINGS,
+      language: get().settings.language,
+      outputDir: await api.defaultDownloadDir(),
+    };
+
     set({ settings });
     await store?.set("settings", settings);
     await api.setConcurrency(settings.concurrency);

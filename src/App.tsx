@@ -4,6 +4,7 @@ import { HistoryView } from "./components/HistoryView";
 import { SettingsView } from "./components/SettingsView";
 import { SetupScreen } from "./components/Components";
 import { Button, ErrorNote, Icon, Logo, Spinner } from "./components/ui";
+import { useT } from "./i18n";
 import { errorMessage } from "./lib/ipc";
 import { useDeps } from "./stores/deps";
 import { isActive, useQueue } from "./stores/queue";
@@ -11,13 +12,10 @@ import { useSettings } from "./stores/settings";
 
 type Tab = "download" | "history" | "settings";
 
-const TABS: { id: Tab; label: string }[] = [
-  { id: "download", label: "Download" },
-  { id: "history", label: "History" },
-  { id: "settings", label: "Settings" },
-];
+const TABS: Tab[] = ["download", "history", "settings"];
 
 export default function App() {
+  const t = useT();
   const [tab, setTab] = useState<Tab>("download");
   const [bootError, setBootError] = useState<string | null>(null);
   const settingsLoaded = useSettings((s) => s.loaded);
@@ -34,7 +32,7 @@ export default function App() {
   if (bootError) {
     return (
       <div className="p-6">
-        <ErrorNote>Grabbit couldn't start: {bootError}</ErrorNote>
+        <ErrorNote>{t.app.bootFailed(bootError)}</ErrorNote>
       </div>
     );
   }
@@ -54,20 +52,20 @@ export default function App() {
           <Logo className="size-[22px]" />
           Grabbit
         </div>
-        <nav role="tablist" aria-label="Sections" className="inline-flex gap-0.5 rounded-lg bg-fill p-0.5">
-          {TABS.map((t) => (
+        <nav role="tablist" aria-label={t.app.sections} className="inline-flex gap-0.5 rounded-lg bg-fill p-0.5">
+          {TABS.map((id) => (
             <button
-              key={t.id}
+              key={id}
               type="button"
               role="tab"
-              onClick={() => setTab(t.id)}
-              aria-selected={tab === t.id}
+              onClick={() => setTab(id)}
+              aria-selected={tab === id}
               className={`inline-flex h-6 items-center gap-1.5 rounded-md px-3.5 text-[13px] font-medium transition-colors focus-visible:focus-ring ${
-                tab === t.id ? "bg-surface text-label elev-control" : "text-label-secondary hover:text-label"
+                tab === id ? "bg-surface text-label elev-control" : "text-label-secondary hover:text-label"
               }`}
             >
-              {t.label}
-              {t.id === "download" && active > 0 && tab !== "download" && (
+              {t.app.tabs[id]}
+              {id === "download" && active > 0 && tab !== "download" && (
                 <span className="min-w-4 rounded-full bg-accent px-1 text-[10px] leading-4 font-semibold text-accent-on tabular-nums">{active}</span>
               )}
             </button>
@@ -76,7 +74,8 @@ export default function App() {
         <div className="flex justify-end">
           {deps.some((c) => !c.installed) && (
             <Button size="sm" variant="plain" onClick={() => setTab("settings")}>
-              <Icon name="alert" className="size-3.5" /> Deno missing
+              <Icon name="alert" className="size-3.5" /> {t.app.denoMissing}
+
             </Button>
           )}
         </div>

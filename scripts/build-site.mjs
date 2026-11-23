@@ -1,20 +1,26 @@
 #!/usr/bin/env node
 // Builds the landing page (site/ → dist-site/) with the latest GitHub release
 // baked in, so download links work without JavaScript and visitors never hit
-// the GitHub API rate limit. Run by .github/workflows/pages.yml on every
-// published release; run locally with `npm run site:build`.
+// the GitHub API rate limit. One page per language (see site-i18n.mjs):
+// English at the root, the others under pt-br/, es/, fr/, de/. Run by
+// .github/workflows/pages.yml on every published release; run locally with
+// `npm run site:build`.
 //
 // Env: GITHUB_TOKEN (optional, raises the API rate limit),
-//      GITHUB_REPOSITORY (defaults to aloisiot/grabbit).
+//      GITHUB_REPOSITORY (defaults to aloisiot/grabbit),
+//      SITE_URL (defaults to https://<owner>.github.io/<repo>/; used for hreflang links).
 import { cp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { LOCALES, loadDictionaries, renderLocale } from "./site-i18n.mjs";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const srcDir = join(root, "site");
 const outDir = join(root, "dist-site");
 const repo = process.env.GITHUB_REPOSITORY || "aloisiot/grabbit";
 const releasesUrl = `https://github.com/${repo}/releases/latest`;
+const [owner, name] = repo.split("/");
+const siteUrl = (process.env.SITE_URL || `https://${owner}.github.io/${name}/`).replace(/\/?$/, "/");
 
 // Which release file each download button points to. Tauri puts the version
 // in every file name, so they're matched by pattern rather than by name.
@@ -42,11 +48,9 @@ function formatSize(bytes) {
   return `${Math.round(bytes / (1024 * 1024))} MB`;
 }
 
-function formatDate(iso) {
-  return new Date(iso).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric", timeZone: "UTC" });
+function formatDate(iso, locale) {
+  return new Date(iso).toLocaleDateString(locale, { year: "numeric", month: "long", day: "numeric", timeZone: "UTC" });
 }
-
-const escapeHtml = (s) => String(s).replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
 
 function summarize(release) {
   if (!release) return { version: null, date: null, url: releasesUrl, assets: {} };
@@ -64,10 +68,10 @@ function summarize(release) {
   };
 }
 
-function render(template, data) {
+function valuesFor(data, locale, dict) {
   const values = {
     version: data.version ?? "—",
-    date: data.date ? formatDate(data.date) : "soon",
+    date: data.date ? formatDate(data.date, locale.code) : dict["release.soon"],
     release_url: data.url,
   };
   for (const key of Object.keys(ASSET_PATTERNS)) {
@@ -75,12 +79,7 @@ function render(template, data) {
     values[`href:${key}`] = a ? a.url : releasesUrl;
     values[`size:${key}`] = a ? formatSize(a.size) : "";
   }
-  const html = template.replace(/\{\{([\w:-]+)\}\}/g, (m, key) => {
-    if (!(key in values)) throw new Error(`Unknown placeholder ${m} in site/index.html`);
-    return escapeHtml(values[key]);
-  });
-  // Drop the " · " that would trail an empty size, e.g. ".dmg · ".
-  return html.replace(/ · <\/span>/g, "</span>");
+  return values;
 }
 
 const release = await fetchLatestRelease();
@@ -88,15 +87,22 @@ const data = summarize(release);
 
 await rm(outDir, { recursive: true, force: true });
 await mkdir(outDir, { recursive: true });
-await cp(srcDir, outDir, { recursive: true });
+await cp(srcDir, outDir, { recursive: true, filter: (src) => !src.startsWith(join(srcDir, "i18n")) });
 const template = await readFile(join(srcDir, "index.html"), "utf8");
-await writeFile(join(outDir, "index.html"), render(template, data));
+const dicts = await loadDictionaries(join(srcDir, "i18n"));
+for (const locale of LOCALES) {
+  const dir = join(outDir, locale.dir);
+  await mkdir(dir, { recursive: true });
+  const values = valuesFor(data, locale, dicts[locale.code]);
+  await writeFile(join(dir, "index.html"), renderLocale(template, { locale, dicts, values, siteUrl }));
+}
 await writeFile(join(outDir, "latest.json"), JSON.stringify(data, null, 2) + "\n");
 // Serve files as-is (no Jekyll processing on GitHub Pages).
 await writeFile(join(outDir, ".nojekyll"), "");
 
 console.log(
   data.version
-    ? `Built dist-site/ for v${data.version} with ${Object.keys(data.assets).length}/${Object.keys(ASSET_PATTERNS).length} downloads`
-    : "Built dist-site/ with no published release (buttons link to the releases page)",
+    ? `Built dist-site/ (${LOCALES.length} languages) for v${data.version} with ${Object.keys(data.assets).length}/${Object.keys(ASSET_PATTERNS).length} downloads`
+    : `Built dist-site/ (${LOCALES.length} languages) with no published release (buttons link to the releases page)`,
+
 );

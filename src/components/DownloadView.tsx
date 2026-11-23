@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
+import { useT, type Messages } from "../i18n";
 import { api, errorMessage } from "../lib/ipc";
 import { formatDuration, heightLabel, looksLikeUrl, pickHeight, STANDARD_HEIGHTS } from "../lib/format";
 import type { DownloadOptions, PlaylistProbe, ProbeResult, VideoProbe } from "../lib/types";
@@ -10,6 +11,8 @@ import { QueueList } from "./QueueList";
 import { Button, Checkbox, ErrorNote, Group, Icon, Notice, Spinner, Thumb } from "./ui";
 
 export function DownloadView() {
+  const t = useT();
+  const d = t.download;
   const settings = useSettings((s) => s.settings);
   const hasJobs = useQueue((s) => s.jobs.length > 0);
   const [url, setUrl] = useState("");
@@ -35,7 +38,7 @@ export function DownloadView() {
     const link = target.trim();
     if (!link) return;
     if (!looksLikeUrl(link)) {
-      setError("That doesn't look like a link. Paste a full URL starting with https://");
+      setError(d.notALink);
       return;
     }
     const id = ++probeId.current;
@@ -64,7 +67,7 @@ export function DownloadView() {
       }
     } catch {
       inputRef.current?.focus();
-      setError("Couldn't read the clipboard. Paste the link into the box with ⌘V / Ctrl+V.");
+      setError(d.clipboardFailed);
     }
   }
 
@@ -90,7 +93,7 @@ export function DownloadView() {
           <input
             ref={inputRef}
             className="min-w-0 flex-1 bg-transparent text-sm text-label outline-none placeholder:text-label-tertiary"
-            placeholder="Paste a video, playlist or channel link"
+            placeholder={d.placeholder}
             value={url}
             onChange={(e) => setUrl(e.target.value)}
             onPaste={(e) => {
@@ -103,14 +106,14 @@ export function DownloadView() {
             }}
             spellCheck={false}
             autoComplete="off"
-            aria-label="Link to download"
+            aria-label={d.linkLabel}
           />
-          <Button variant="ghost" onClick={pasteFromClipboard} title="Paste from clipboard">
-            <Icon name="clipboard" className="size-3.5" /> Paste
+          <Button variant="ghost" onClick={pasteFromClipboard} title={d.pasteTitle}>
+            <Icon name="clipboard" className="size-3.5" /> {d.paste}
           </Button>
           {/* Fetch is the primary action until there's something to download. */}
           <Button type="submit" variant={result ? "secondary" : "primary"} className="min-w-18" disabled={probing || !url.trim()}>
-            {probing ? <Spinner className="size-3.5" /> : "Fetch"}
+            {probing ? <Spinner className="size-3.5" /> : d.fetch}
           </Button>
         </form>
 
@@ -118,7 +121,7 @@ export function DownloadView() {
         {error && <ErrorNote>{error}</ErrorNote>}
         {probing && (
           <div className="flex items-center gap-2.5 px-1 text-[13px] text-label-secondary">
-            <Spinner className="size-3.5" /> Reading link… playlists and channels can take a moment.
+            <Spinner className="size-3.5" /> {d.reading}
           </div>
         )}
 
@@ -132,7 +135,7 @@ export function DownloadView() {
               await api.enqueue([
                 { url: result.url, videoId: result.id, title: result.title, thumbnail: result.thumbnail, options, playlist: null },
               ]);
-              reset(`Added “${result.title}” to the queue.`);
+              reset(d.addedOne(result.title));
             }}
           />
         )}
@@ -155,7 +158,7 @@ export function DownloadView() {
                   playlist: { title: result.title, index: e.index },
                 }));
               await api.enqueue(items);
-              reset(`Added ${items.length} item${items.length === 1 ? "" : "s"} from “${result.title}” to the queue.`);
+              reset(d.addedMany(items.length, result.title));
             }}
           />
         )}
@@ -166,8 +169,8 @@ export function DownloadView() {
               <Icon name="download" className="size-6" />
             </span>
             <div>
-              <p className="text-[15px] font-semibold">Paste a link to get started</p>
-              <p className="mt-1 text-[13px] text-label-secondary">YouTube and hundreds of other sites. Videos, playlists and channels all work.</p>
+              <p className="text-[15px] font-semibold">{d.emptyTitle}</p>
+              <p className="mt-1 text-[13px] text-label-secondary">{d.emptyBody}</p>
             </div>
           </div>
         )}
@@ -194,11 +197,11 @@ function ActionBar({ slot, title, detail, children }: { slot: HTMLElement | null
   );
 }
 
-function summary(options: DownloadOptions, folder: string): string {
+function summary(t: Messages, options: DownloadOptions, folder: string): string {
   const parts =
     options.mode === "audio"
-      ? ["Audio", options.audioFormat.toUpperCase()]
-      : ["Video", options.maxHeight ? heightLabel(options.maxHeight) : "Best quality", options.videoContainer.toUpperCase()];
+      ? [t.common.audio, options.audioFormat.toUpperCase()]
+      : [t.common.video, options.maxHeight ? heightLabel(options.maxHeight) : t.common.bestQuality, options.videoContainer.toUpperCase()];
   return [...parts, folder].join(" · ");
 }
 
@@ -228,6 +231,7 @@ function VideoSection({
   onDownload: () => Promise<void>;
   barSlot: HTMLElement | null;
 }) {
+  const t = useT();
   const [busy, run] = useBusy();
   return (
     <>
@@ -236,14 +240,14 @@ function VideoSection({
         <div className="min-w-0 flex-1">
           <h2 className="line-clamp-2 text-xl leading-[25px] font-semibold tracking-tight">{video.title}</h2>
           <p className="mt-0.5 text-[13px] text-label-secondary">
-            {[video.uploader, formatDuration(video.duration), video.heights[0] && `up to ${video.heights[0]}p`].filter(Boolean).join(" · ")}
+            {[video.uploader, formatDuration(video.duration), video.heights[0] && t.download.upTo(video.heights[0])].filter(Boolean).join(" · ")}
           </p>
         </div>
       </div>
       <OptionsPanel options={options} onChange={onOptions} heights={video.heights} subtitleLangs={video.subtitleLangs} />
-      <ActionBar slot={barSlot} title="1 video" detail={summary(options, shortPath(options.outputDir))}>
+      <ActionBar slot={barSlot} title={t.download.oneVideo} detail={summary(t, options, shortPath(options.outputDir))}>
         <Button variant="primary" size="lg" disabled={busy} onClick={() => run(onDownload)}>
-          <Icon name="download" /> Download
+          <Icon name="download" /> {t.download.download}
         </Button>
       </ActionBar>
     </>
@@ -263,6 +267,8 @@ function PlaylistSection({
   onDownload: (indices: Set<number>) => Promise<void>;
   barSlot: HTMLElement | null;
 }) {
+  const t = useT();
+  const d = t.download;
   const [selected, setSelected] = useState<Set<number>>(() => new Set(playlist.entries.map((e) => e.index)));
   const [filter, setFilter] = useState("");
   const [busy, run] = useBusy();
@@ -287,26 +293,26 @@ function PlaylistSection({
         <div className="min-w-0">
           <h2 className="line-clamp-2 text-xl leading-[25px] font-semibold tracking-tight">{playlist.title}</h2>
           <p className="mt-0.5 text-[13px] text-label-secondary">
-            {[playlist.uploader, `${total} videos`, "Saved into a folder named after the playlist"].filter(Boolean).join(" · ")}
+            {[playlist.uploader, d.videos(total), d.playlistFolder].filter(Boolean).join(" · ")}
           </p>
         </div>
       </div>
 
       {total === 0 ? (
-        <ErrorNote>This playlist is empty or private.</ErrorNote>
+        <ErrorNote>{d.playlistEmpty}</ErrorNote>
       ) : (
         <Group
-          header={<span className="tabular-nums">{selected.size} of {total} selected</span>}
+          header={<span className="tabular-nums">{d.selected(selected.size, total)}</span>}
           accessory={
             <div className="flex items-center gap-2 font-normal">
               <label className="flex h-6 w-40 items-center gap-1.5 rounded-md bg-fill px-2 transition-colors focus-within:bg-surface focus-within:focus-ring">
                 <Icon name="search" className="size-3.5 shrink-0 text-label-tertiary" />
                 <input
                   className="min-w-0 flex-1 bg-transparent text-xs text-label outline-none placeholder:text-label-tertiary"
-                  placeholder="Filter"
+                  placeholder={d.filter}
                   value={filter}
                   onChange={(e) => setFilter(e.target.value)}
-                  aria-label="Filter playlist by title"
+                  aria-label={d.filterLabel}
                 />
               </label>
               <Button
@@ -314,7 +320,7 @@ function PlaylistSection({
                 variant="plain"
                 onClick={() => setSelected(allSelected ? new Set() : new Set(playlist.entries.map((e) => e.index)))}
               >
-                {allSelected ? "Select None" : "Select All"}
+                {allSelected ? d.selectNone : d.selectAll}
               </Button>
             </div>
           }
@@ -338,7 +344,7 @@ function PlaylistSection({
                 </li>
               );
             })}
-            {visible.length === 0 && <li className="px-4 py-5 text-center text-[13px] text-label-secondary">No titles match “{filter}”.</li>}
+            {visible.length === 0 && <li className="px-4 py-5 text-center text-[13px] text-label-secondary">{d.noMatch(filter)}</li>}
           </ul>
         </Group>
       )}
@@ -346,11 +352,12 @@ function PlaylistSection({
       <OptionsPanel options={options} onChange={onOptions} heights={STANDARD_HEIGHTS} />
       <ActionBar
         slot={barSlot}
-        title={selected.size === 0 ? "Nothing selected" : `${selected.size} ${selected.size === 1 ? "item" : "items"}`}
-        detail={summary(options, `${shortPath(options.outputDir)}/${playlist.title}`)}
+        title={selected.size === 0 ? d.nothingSelected : d.items(selected.size)}
+        detail={summary(t, options, `${shortPath(options.outputDir)}/${playlist.title}`)}
       >
         <Button variant="primary" size="lg" disabled={busy || selected.size === 0} onClick={() => run(() => onDownload(selected))}>
-          <Icon name="download" /> {selected.size > 0 ? `Download ${selected.size}` : "Download"}
+          <Icon name="download" /> {selected.size > 0 ? d.downloadN(selected.size) : d.download}
+
         </Button>
       </ActionBar>
     </>

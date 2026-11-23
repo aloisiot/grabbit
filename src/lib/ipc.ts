@@ -1,6 +1,7 @@
 // Typed wrappers around the Rust commands and events.
 import { invoke } from "@tauri-apps/api/core";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
+import { describeError } from "../i18n";
 import type {
   ComponentId,
   ComponentStatus,
@@ -48,9 +49,8 @@ export const events = {
     listen<InstallProgress>("deps://progress", (e) => cb(e.payload)),
 };
 
-/** Commands reject with a plain string; normalise anything else. */
+/** Commands reject with a string (often an "E:code" from the backend); turn it into text in the active language. */
 export function errorMessage(e: unknown): string {
-  if (typeof e === "string") return e;
-  if (e instanceof Error) return e.message;
-  return String(e);
+  return describeError(e);
 }
+

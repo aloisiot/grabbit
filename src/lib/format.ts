@@ -1,3 +1,5 @@
+import { getLocale, getT } from "../i18n";
+
 const UNITS = ["B", "KB", "MB", "GB", "TB"];
 
 export function formatBytes(bytes: number | null | undefined): string {
@@ -9,7 +11,8 @@ export function formatBytes(bytes: number | null | undefined): string {
     unit++;
   }
   const digits = unit === 0 || value >= 100 ? 0 : 1;
-  return `${value.toFixed(digits)} ${UNITS[unit]}`;
+  const num = new Intl.NumberFormat(getLocale(), { minimumFractionDigits: digits, maximumFractionDigits: digits, useGrouping: false });
+  return `${num.format(value)} ${UNITS[unit]}`;
 }
 
 export function formatSpeed(bytesPerSecond: number | null | undefined): string {
@@ -28,18 +31,19 @@ export function formatDuration(seconds: number | null | undefined): string {
   return h > 0 ? `${h}:${pad(m)}:${pad(s)}` : `${m}:${pad(s)}`;
 }
 
-/** Seconds remaining → "12s left", "3m left", "1h 5m left". */
+/** Seconds remaining → "12s left", "3m left", "1h 5m left" (in the active language). */
 export function formatEta(seconds: number | null | undefined): string {
   if (seconds == null || !Number.isFinite(seconds) || seconds < 0) return "";
-  if (seconds < 60) return `${Math.round(seconds)}s left`;
-  if (seconds < 3600) return `${Math.round(seconds / 60)}m left`;
+  const eta = getT().format.eta;
+  if (seconds < 60) return eta.seconds(Math.round(seconds));
+  if (seconds < 3600) return eta.minutes(Math.round(seconds / 60));
   const h = Math.floor(seconds / 3600);
   const m = Math.round((seconds % 3600) / 60);
-  return `${h}h ${m}m left`;
+  return eta.hours(h, m);
 }
 
 export function formatDate(ms: number): string {
-  return new Date(ms).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" });
+  return new Date(ms).toLocaleString(getLocale(), { dateStyle: "medium", timeStyle: "short" });
 }
 
 export function fileName(path: string | null | undefined): string {

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { ask } from "@tauri-apps/plugin-dialog";
+import { useT } from "../i18n";
 import { api, errorMessage } from "../lib/ipc";
 import { fileName, formatBytes, formatDate } from "../lib/format";
 import type { HistoryEntry } from "../lib/types";
@@ -8,6 +9,8 @@ import { optionsFromSettings, useSettings } from "../stores/settings";
 import { Button, Card, ErrorNote, Icon, IconButton, Thumb, inputClass } from "./ui";
 
 export function HistoryView({ onRedownload }: { onRedownload: () => void }) {
+  const t = useT();
+  const h = t.history;
   const { entries, refresh } = useHistory();
   const [query, setQuery] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -42,8 +45,8 @@ export function HistoryView({ onRedownload }: { onRedownload: () => void }) {
     return (
       <Card className="flex flex-col items-center gap-2 py-12 text-center">
         <Icon name="clock" className="size-8 text-zinc-400" />
-        <p className="font-medium text-zinc-700 dark:text-zinc-200">No downloads yet</p>
-        <p className="text-sm text-zinc-500 dark:text-zinc-400">Finished downloads will show up here.</p>
+        <p className="font-medium text-zinc-700 dark:text-zinc-200">{h.emptyTitle}</p>
+        <p className="text-sm text-zinc-500 dark:text-zinc-400">{h.emptyBody}</p>
       </Card>
     );
   }
@@ -53,20 +56,20 @@ export function HistoryView({ onRedownload }: { onRedownload: () => void }) {
       <div className="flex items-center gap-2">
         <input
           className={`${inputClass} min-w-0 flex-1`}
-          placeholder="Search history"
+          placeholder={h.search}
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          aria-label="Search history"
+          aria-label={h.search}
         />
         <Button
           variant="ghost"
           onClick={async () => {
-            if (await ask("Clear the whole download history? Your downloaded files are not deleted.", { title: "Clear history", kind: "warning" })) {
+            if (await ask(h.clearConfirm, { title: h.clear, kind: "warning", okLabel: h.clear, cancelLabel: t.common.cancel })) {
               await run(() => api.historyClear());
             }
           }}
         >
-          Clear history
+          {h.clear}
         </Button>
       </div>
       {error && <ErrorNote>{error}</ErrorNote>}
@@ -79,32 +82,33 @@ export function HistoryView({ onRedownload }: { onRedownload: () => void }) {
                 {e.title}
               </p>
               <p className="truncate text-xs text-zinc-500 dark:text-zinc-400" title={e.filepath ?? ""}>
-                {formatDate(e.completedAt)} · {e.mode === "audio" ? "Audio" : "Video"}
+                {formatDate(e.completedAt)} · {e.mode === "audio" ? t.common.audio : t.common.video}
                 {e.sizeBytes ? ` · ${formatBytes(e.sizeBytes)}` : ""}
-                {e.exists ? ` · ${fileName(e.filepath)}` : " · file moved or deleted"}
+                {e.exists ? ` · ${fileName(e.filepath)}` : ` · ${h.fileGone}`}
               </p>
             </div>
             <div className="flex shrink-0 items-center gap-1">
               {e.exists && e.filepath && (
                 <>
-                  <IconButton label="Open file" onClick={() => run(() => api.openFile(e.filepath!))}>
+                  <IconButton label={t.common.openFile} onClick={() => run(() => api.openFile(e.filepath!))}>
                     <Icon name="play" />
                   </IconButton>
-                  <IconButton label="Show in folder" onClick={() => run(() => api.revealFile(e.filepath!))}>
+                  <IconButton label={t.common.showInFolder} onClick={() => run(() => api.revealFile(e.filepath!))}>
                     <Icon name="folder" />
                   </IconButton>
                 </>
               )}
-              <IconButton label="Download again" onClick={() => run(() => redownload(e))}>
+              <IconButton label={h.downloadAgain} onClick={() => run(() => redownload(e))}>
                 <Icon name="retry" />
               </IconButton>
-              <IconButton label="Remove from history" onClick={() => run(() => api.historyRemove(e.id))}>
+              <IconButton label={h.remove} onClick={() => run(() => api.historyRemove(e.id))}>
                 <Icon name="trash" />
               </IconButton>
             </div>
           </li>
         ))}
-        {shown.length === 0 && <li className="p-6 text-center text-sm text-zinc-500">Nothing matches “{query}”.</li>}
+        {shown.length === 0 && <li className="p-6 text-center text-sm text-zinc-500">{h.noMatch(query)}</li>}
+
       </ul>
     </div>
   );

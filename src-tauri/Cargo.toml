@@ -1,6 +1,6 @@
 [package]
 name = "grabbit"
-version = "0.2.0"
+version = "0.3.0"
 description = "Open-source desktop front-end for yt-dlp"
 authors = ["Grabbit contributors"]
 edition = "2024"

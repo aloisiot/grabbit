@@ -451,91 +451,42 @@ pub fn parse_line(line: &str) -> Option<Event> {
 }
 
 /// Human-readable label for a yt-dlp postprocessor.
+/// Stage code for a yt-dlp postprocessor; the UI turns it into text.
 pub fn postprocessor_label(name: &str) -> String {
-    match name {
-        "Merger" => "Merging video and audio",
-        "ExtractAudio" => "Converting audio",
-        "VideoRemuxer" | "VideoConvertor" => "Remuxing",
-        "EmbedThumbnail" => "Embedding thumbnail",
-        "FFmpegMetadata" | "Metadata" => "Writing metadata",
-        "EmbedSubtitle" => "Embedding subtitles",
-        "SubtitlesConvertor" => "Converting subtitles",
-        "ThumbnailsConvertor" => "Converting thumbnail",
-        "FixupM3u8" | "FixupM4a" | "FixupStretched" | "FixupDuplicateMoov" | "FixupTimestamp"
-        | "FixupDuration" => "Fixing up file",
-        "MoveFiles" => "Finishing",
-        other => return format!("Processing ({other})"),
-    }
-    .to_string()
+    format!("pp:{name}")
 }
 
-/// Turn yt-dlp's stderr into one friendly sentence.
+/// Turn yt-dlp's stderr into one user-facing message.
+///
+/// Known problems come back as `E:<code>` (or `E:<code>:<detail>`), which the
+/// UI translates (see `src/i18n`); anything else is yt-dlp's own message.
 pub fn friendly_error(log: &[String], exit_code: Option<i32>) -> String {
     let last_error = log.iter().rev().find(|l| l.starts_with("ERROR:"));
     let Some(line) = last_error else {
         return match exit_code {
-            Some(c) => format!("yt-dlp stopped unexpectedly (exit code {c})."),
-            None => "yt-dlp was stopped.".into(),
+            Some(c) => format!("E:exit_code:{c}"),
+            None => "E:stopped".into(),
         };
     };
     let lower = line.to_lowercase();
     let known = [
-        ("private video", "This video is private."),
-        (
-            "not a bot",
-            "YouTube asked to confirm you're not a bot. Update yt-dlp in Settings, or try again later.",
-        ),
-        (
-            "confirm your age",
-            "This video is age-restricted and needs a signed-in account.",
-        ),
-        ("members-only", "This video is for channel members only."),
-        (
-            "join this channel",
-            "This video is for channel members only.",
-        ),
-        (
-            "video unavailable",
-            "This video is unavailable (removed, private, or blocked in your region).",
-        ),
-        (
-            "is not available in your country",
-            "This video is blocked in your region.",
-        ),
-        ("premieres in", "This video hasn't premiered yet."),
-        (
-            "this live event will begin",
-            "This live stream hasn't started yet.",
-        ),
-        (
-            "ffmpeg not found",
-            "ffmpeg is missing. Reinstall it under Settings → Components.",
-        ),
-        (
-            "ffprobe and ffmpeg not found",
-            "ffmpeg is missing. Reinstall it under Settings → Components.",
-        ),
-        ("unsupported url", "This link isn't supported."),
-        (
-            "unable to download webpage",
-            "Couldn't reach the site. Check your internet connection.",
-        ),
-        (
-            "no space left on device",
-            "The download folder's disk is full.",
-        ),
-        (
-            "permission denied",
-            "Grabbit can't write to the download folder. Pick another one in Settings.",
-        ),
-        (
-            "http error 403",
-            "The server refused the download (HTTP 403). Updating yt-dlp in Settings usually fixes this.",
-        ),
-        (
-            "requested format is not available",
-            "The requested quality isn't available for this video.",
-        ),
+        ("private video", "E:private"),
+        ("not a bot", "E:bot_check"),
+        ("confirm your age", "E:age_restricted"),
+        ("members-only", "E:members_only"),
+        ("join this channel", "E:members_only"),
+        ("video unavailable", "E:unavailable"),
+        ("is not available in your country", "E:region_blocked"),
+        ("premieres in", "E:not_premiered"),
+        ("this live event will begin", "E:live_not_started"),
+        ("ffmpeg not found", "E:ffmpeg_missing"),
+        ("ffprobe and ffmpeg not found", "E:ffmpeg_missing"),
+        ("unsupported url", "E:unsupported_url"),
+        ("unable to download webpage", "E:offline"),
+        ("no space left on device", "E:disk_full"),
+        ("permission denied", "E:no_write_permission"),
+        ("http error 403", "E:http_403"),
+        ("requested format is not available", "E:format_unavailable"),
     ];
     if let Some((_, msg)) = known.iter().find(|(needle, _)| lower.contains(needle)) {
         return msg.to_string();
@@ -780,14 +731,14 @@ mod tests {
                 &log("ERROR: [youtube] abc: Private video. Sign in"),
                 Some(1)
             ),
-            "This video is private."
+            "E:private"
         );
-        assert!(
+        assert_eq!(
             friendly_error(
                 &log("ERROR: [youtube] abc: Sign in to confirm you're not a bot."),
                 Some(1)
-            )
-            .contains("not a bot")
+            ),
+            "E:bot_check"
         );
         assert_eq!(
             friendly_error(
@@ -796,9 +747,8 @@ mod tests {
             ),
             "Something odd happened"
         );
-        assert_eq!(
-            friendly_error(&[], Some(2)),
-            "yt-dlp stopped unexpectedly (exit code 2)."
-        );
+        assert_eq!(friendly_error(&[], Some(2)), "E:exit_code:2");
+        assert_eq!(friendly_error(&[], None), "E:stopped");
+        assert_eq!(postprocessor_label("Merger"), "pp:Merger");
     }
 }
