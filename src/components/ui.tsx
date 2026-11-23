@@ -240,7 +240,7 @@ export function FormRow({ label, detail, children }: { label: ReactNode; detail?
 
 export function ErrorNote({ children }: { children: ReactNode }) {
   return (
-    <div role="alert" className="flex items-start gap-2 rounded-[var(--radius-control)] bg-accent-faint px-3 py-2.5 text-[13px] text-label shadow-[inset_0_0_0_0.5px_var(--color-accent-strong)]">
+    <div role="alert" className="flex items-start gap-2 rounded-[var(--radius-control)] border border-accent-strong/40 bg-accent-faint px-3 py-2.5 text-[13px] text-label">
       <Icon name="alert" className="mt-px size-4 shrink-0 text-accent-strong" />
       <div className="min-w-0 whitespace-pre-line">{children}</div>
     </div>
