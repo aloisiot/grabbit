@@ -230,6 +230,7 @@ export const fr: Messages = {
 
   errors: {
     private: "Cette vidéo est privée.",
+    playlist_unavailable: "Cette playlist n'existe pas ou est privée. Si elle vous appartient, passez sa visibilité en Publique ou Non répertoriée sur YouTube, puis réessayez.",
     bot_check: "YouTube demande de confirmer que vous n’êtes pas un robot. Mettez à jour yt-dlp dans Réglages ou réessayez plus tard.",
     age_restricted: "Cette vidéo est soumise à une limite d’âge et nécessite un compte connecté.",
     members_only: "Cette vidéo est réservée aux membres de la chaîne.",

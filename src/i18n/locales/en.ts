@@ -235,6 +235,7 @@ export const en = {
   /** Messages for error codes sent by the Rust backend ("E:code" or "E:code:detail"). */
   errors: {
     private: "This video is private.",
+    playlist_unavailable: "This playlist doesn't exist or is private. If it's yours, set its visibility to Public or Unlisted on YouTube and try again.",
     bot_check: "YouTube asked to confirm you're not a bot. Update yt-dlp in Settings, or try again later.",
     age_restricted: "This video is age-restricted and needs a signed-in account.",
     members_only: "This video is for channel members only.",
