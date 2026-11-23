@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Grabbit — free video &amp; audio downloader</title>
+  <meta name="description" content="Grabbit is a free, open-source desktop app for downloading video and audio, built on yt-dlp. For macOS, Windows and Linux.">
+  <meta name="color-scheme" content="light dark">
+  <meta property="og:title" content="Grabbit — free video & audio downloader">
+  <meta property="og:description" content="Paste a link, choose video or audio and a quality, and download. Free and open source, for macOS, Windows and Linux.">
+  <meta property="og:type" content="website">
+  <meta property="og:image" content="assets/screenshot.png">
+  <link rel="icon" type="image/png" href="assets/favicon.png">
+  <link rel="apple-touch-icon" href="assets/icon.png">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="nav">
+    <div class="wrap nav-inner">
+      <a class="brand" href="#top"><img src="assets/icon.png" alt="" width="28" height="28"> Grabbit</a>
+      <nav>
+        <a href="#features">Features</a>
+        <a href="#download">Download</a>
+        <a href="https://github.com/aloisiot/grabbit">GitHub</a>
+      </nav>
+    </div>
+  </header>
+
+  <main id="top">
+    <section class="hero wrap">
+      <img class="hero-icon" src="assets/icon.png" alt="Grabbit app icon" width="128" height="128">
+      <h1>Download video and audio.<br>Nothing else in the way.</h1>
+      <p class="lede">Grabbit is a free, open-source desktop app built on yt-dlp. Paste a link, pick video or audio and a quality, and download.</p>
+      <div class="cta">
+        <a class="btn btn-primary" id="primary-download" href="#download">Download Grabbit</a>
+        <a class="btn btn-secondary" id="other-platforms" href="#download">Other platforms</a>
+      </div>
+      <p class="meta">Version {{version}} · released {{date}} · <a href="{{release_url}}">release notes</a></p>
+    </section>
+
+    <section class="shot wrap" aria-label="Screenshot">
+      <img src="assets/screenshot.png" alt="Grabbit with a video link fetched, showing video or audio, quality, format, subtitle and save-location options" width="1960" height="1520">
+    </section>
+
+    <section id="features" class="wrap section">
+      <h2>Everything you need, nothing you don't</h2>
+      <div class="features">
+        <article>
+          <h3>Video or audio</h3>
+          <p>MP4 that plays everywhere or MKV with the best codecs. MP3 or M4A for audio only.</p>
+        </article>
+        <article>
+          <h3>Real quality options</h3>
+          <p>The picker lists the resolutions each video actually has. No guessing.</p>
+        </article>
+        <article>
+          <h3>Download queue</h3>
+          <p>Several downloads at once, with live progress, cancel and retry.</p>
+        </article>
+        <article>
+          <h3>Playlists and channels</h3>
+          <p>See every entry and choose which ones to grab. Each playlist gets its own folder.</p>
+        </article>
+        <article>
+          <h3>Subtitles and metadata</h3>
+          <p>Embed subtitles, title, thumbnail and chapters straight into the file.</p>
+        </article>
+        <article>
+          <h3>Fixes itself</h3>
+          <p>When a site change breaks downloads, update the yt-dlp engine from inside the app. No new release needed.</p>
+        </article>
+      </div>
+    </section>
+
+    <section id="download" class="wrap section">
+      <h2>Download</h2>
+      <p class="section-lede">Version {{version}}, released {{date}}. Free, forever.</p>
+      <div class="platforms-grid">
+        <article class="platform" data-os="mac">
+          <h3>macOS</h3>
+          <p class="req">Apple Silicon or Intel</p>
+          <a class="btn btn-row" data-arch="arm" href="{{href:mac-arm}}">Apple Silicon <span>.dmg · {{size:mac-arm}}</span></a>
+          <a class="btn btn-row" data-arch="x64" href="{{href:mac-x64}}">Intel <span>.dmg · {{size:mac-x64}}</span></a>
+          <p class="hint">M1 or newer? Choose Apple Silicon.</p>
+        </article>
+        <article class="platform" data-os="windows">
+          <h3>Windows</h3>
+          <p class="req">Windows 10 or later, 64-bit</p>
+          <a class="btn btn-row" href="{{href:win-exe}}">Installer <span>.exe · {{size:win-exe}}</span></a>
+          <a class="btn btn-row" href="{{href:win-msi}}">MSI package <span>.msi · {{size:win-msi}}</span></a>
+        </article>
+        <article class="platform" data-os="linux">
+          <h3>Linux</h3>
+          <p class="req">64-bit (x86_64)</p>
+          <a class="btn btn-row" href="{{href:linux-appimage}}">AppImage <span>{{size:linux-appimage}}</span></a>
+          <a class="btn btn-row" href="{{href:linux-deb}}">Debian / Ubuntu <span>.deb · {{size:linux-deb}}</span></a>
+          <a class="btn btn-row" href="{{href:linux-rpm}}">Fedora / openSUSE <span>.rpm · {{size:linux-rpm}}</span></a>
+        </article>
+      </div>
+      <p class="all-releases"><a href="https://github.com/aloisiot/grabbit/releases">All releases on GitHub →</a></p>
+    </section>
+
+    <section id="first-run" class="wrap section">
+      <h2>Opening Grabbit the first time</h2>
+      <p class="section-lede">Grabbit isn't signed with a paid developer certificate yet, so your system asks you to confirm once.</p>
+      <div class="steps">
+        <article data-os="mac">
+          <h3>macOS</h3>
+          <p>Open the .dmg and drag Grabbit to Applications. When you see “Apple could not verify Grabbit”, click <b>Done</b>. Then open <b>System Settings → Privacy &amp; Security</b>, scroll down and click <b>Open Anyway</b>.</p>
+        </article>
+        <article data-os="windows">
+          <h3>Windows</h3>
+          <p>If SmartScreen says “Windows protected your PC”, click <b>More info</b>, then <b>Run anyway</b>.</p>
+        </article>
+        <article data-os="linux">
+          <h3>Linux</h3>
+          <p>Install the .deb or .rpm with your package manager. For the AppImage, run <code>chmod +x</code> on it, then open it.</p>
+        </article>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="wrap">
+      <p>Grabbit is free and open source under the MIT license. <a href="https://github.com/aloisiot/grabbit">Source code on GitHub</a>.</p>
+      <p class="credits">Powered by <a href="https://github.com/yt-dlp/yt-dlp">yt-dlp</a>, <a href="https://ffmpeg.org">FFmpeg</a> and <a href="https://deno.com">Deno</a>. Download only content you have the right to.</p>
+    </div>
+  </footer>
+
+  <script id="release-data" type="application/json">{{release_json}}</script>
+  <script src="main.js" defer></script>
+</body>
+</html>

@@ -1,0 +1,55 @@
+name: Landing page
+
+# Rebuilds the GitHub Pages site with the latest release's download links.
+# Runs when a release is published (publishing the draft from release.yml in
+# the GitHub UI counts), when the site changes on main, or by hand.
+#
+# Note: releases published with GITHUB_TOKEN don't trigger other workflows. If
+# publishing is ever automated inside release.yml, run this workflow from there
+# (e.g. `gh workflow run pages.yml`) instead of relying on the release event.
+on:
+  release:
+    types: [published]
+  push:
+    branches: [main]
+    paths:
+      - "site/**"
+      - "scripts/build-site.mjs"
+      - ".github/workflows/pages.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+
+      - name: Build site with latest release
+        run: node scripts/build-site.mjs
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist-site
+
+      - id: deployment
+        uses: actions/deploy-pages@v4
