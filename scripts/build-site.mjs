@@ -69,8 +69,6 @@ function render(template, data) {
     version: data.version ?? "—",
     date: data.date ? formatDate(data.date) : "soon",
     release_url: data.url,
-    // Inside <script type="application/json">: only "<" can break out.
-    release_json: JSON.stringify(data).replace(/</g, "\\u003c"),
   };
   for (const key of Object.keys(ASSET_PATTERNS)) {
     const a = data.assets[key];
@@ -79,7 +77,7 @@ function render(template, data) {
   }
   const html = template.replace(/\{\{([\w:-]+)\}\}/g, (m, key) => {
     if (!(key in values)) throw new Error(`Unknown placeholder ${m} in site/index.html`);
-    return key === "release_json" ? values[key] : escapeHtml(values[key]);
+    return escapeHtml(values[key]);
   });
   // Drop the " · " that would trail an empty size, e.g. ".dmg · ".
   return html.replace(/ · <\/span>/g, "</span>");

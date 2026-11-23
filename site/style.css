@@ -96,8 +96,6 @@ h1 {
 .btn:active { transform: scale(0.98); }
 .btn-primary { background: var(--accent); color: var(--accent-on); }
 .btn-primary:hover { background: var(--accent-strong); }
-.btn-secondary { background: var(--fill); color: var(--label); }
-.btn-secondary:hover { background: var(--fill-hover); }
 .btn:focus-visible { outline: 3px solid color-mix(in oklch, var(--accent) 45%, transparent); outline-offset: 2px; }
 
 /* Screenshot */
@@ -129,9 +127,6 @@ h3 { font-size: 17px; margin: 0 0 6px; }
 }
 .btn-row:hover { background: var(--fill-hover); }
 .btn-row span { font-weight: 400; color: var(--label-2); font-size: 13px; }
-.platform.is-current { box-shadow: 0 0 0 2px var(--accent); }
-.platform.is-current .btn-row.is-recommended { background: var(--accent); color: var(--accent-on); }
-.platform.is-current .btn-row.is-recommended span { color: color-mix(in oklch, var(--accent-on) 80%, transparent); }
 .all-releases { text-align: center; margin-top: 24px; font-size: 15px; }
 
 .steps { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; }

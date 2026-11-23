@@ -32,8 +32,7 @@
       <h1>Download video and audio.<br>Nothing else in the way.</h1>
       <p class="lede">Grabbit is a free, open-source desktop app built on yt-dlp. Paste a link, pick video or audio and a quality, and download.</p>
       <div class="cta">
-        <a class="btn btn-primary" id="primary-download" href="#download">Download Grabbit</a>
-        <a class="btn btn-secondary" id="other-platforms" href="#download">Other platforms</a>
+        <a class="btn btn-primary" href="#download">Download</a>
       </div>
       <p class="meta">Version {{version}} · released {{date}} · <a href="{{release_url}}">release notes</a></p>
     </section>
@@ -76,20 +75,20 @@
       <h2>Download</h2>
       <p class="section-lede">Version {{version}}, released {{date}}. Free, forever.</p>
       <div class="platforms-grid">
-        <article class="platform" data-os="mac">
+        <article class="platform">
           <h3>macOS</h3>
           <p class="req">Apple Silicon or Intel</p>
-          <a class="btn btn-row" data-arch="arm" href="{{href:mac-arm}}">Apple Silicon <span>.dmg · {{size:mac-arm}}</span></a>
-          <a class="btn btn-row" data-arch="x64" href="{{href:mac-x64}}">Intel <span>.dmg · {{size:mac-x64}}</span></a>
+          <a class="btn btn-row" href="{{href:mac-arm}}">Apple Silicon <span>.dmg · {{size:mac-arm}}</span></a>
+          <a class="btn btn-row" href="{{href:mac-x64}}">Intel <span>.dmg · {{size:mac-x64}}</span></a>
           <p class="hint">M1 or newer? Choose Apple Silicon.</p>
         </article>
-        <article class="platform" data-os="windows">
+        <article class="platform">
           <h3>Windows</h3>
           <p class="req">Windows 10 or later, 64-bit</p>
           <a class="btn btn-row" href="{{href:win-exe}}">Installer <span>.exe · {{size:win-exe}}</span></a>
           <a class="btn btn-row" href="{{href:win-msi}}">MSI package <span>.msi · {{size:win-msi}}</span></a>
         </article>
-        <article class="platform" data-os="linux">
+        <article class="platform">
           <h3>Linux</h3>
           <p class="req">64-bit (x86_64)</p>
           <a class="btn btn-row" href="{{href:linux-appimage}}">AppImage <span>{{size:linux-appimage}}</span></a>
@@ -104,15 +103,15 @@
       <h2>Opening Grabbit the first time</h2>
       <p class="section-lede">Grabbit isn't signed with a paid developer certificate yet, so your system asks you to confirm once.</p>
       <div class="steps">
-        <article data-os="mac">
+        <article>
           <h3>macOS</h3>
           <p>Open the .dmg and drag Grabbit to Applications. When you see “Apple could not verify Grabbit”, click <b>Done</b>. Then open <b>System Settings → Privacy &amp; Security</b>, scroll down and click <b>Open Anyway</b>.</p>
         </article>
-        <article data-os="windows">
+        <article>
           <h3>Windows</h3>
           <p>If SmartScreen says “Windows protected your PC”, click <b>More info</b>, then <b>Run anyway</b>.</p>
         </article>
-        <article data-os="linux">
+        <article>
           <h3>Linux</h3>
           <p>Install the .deb or .rpm with your package manager. For the AppImage, run <code>chmod +x</code> on it, then open it.</p>
         </article>
@@ -127,7 +126,5 @@
     </div>
   </footer>
 
-  <script id="release-data" type="application/json">{{release_json}}</script>
-  <script src="main.js" defer></script>
 </body>
 </html>
