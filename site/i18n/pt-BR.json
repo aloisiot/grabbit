@@ -46,6 +46,7 @@
   "firstRun.linux_html": "Instale o .deb ou o .rpm com seu gerenciador de pacotes. Para o AppImage, rode <code>chmod +x</code> nele e depois abra.",
   "footer.license": "O Grabbit é gratuito e de código aberto sob a licença MIT.",
   "footer.source": "Código-fonte no GitHub",
+  "footer.signingPolicy": "Política de assinatura de código",
   "footer.poweredBy": "Funciona com",
   "footer.and": "e",
   "footer.disclaimer": "Baixe apenas conteúdo que você tem o direito de baixar. O Grabbit não é afiliado ao YouTube nem ao Google.",
