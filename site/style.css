@@ -111,7 +111,7 @@ code { font: 0.9em ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; bac
 .hero-icon { width: 112px; height: 112px; }
 h1 {
   font-size: clamp(32px, 6vw, 54px); line-height: 1.08; letter-spacing: -0.025em;
-  margin: 20px auto 16px; max-width: 24ch; text-wrap: balance;
+  margin: 20px auto 16px; max-width: 20em; text-wrap: balance;
 }
 .lede { font-size: clamp(17px, 2.2vw, 20px); color: var(--label-2); max-width: 36em; margin: 0 auto; text-wrap: pretty; }
 .cta { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; margin: 32px 0 16px; }
@@ -132,6 +132,7 @@ h1 {
 
 /* Screenshot */
 .shot { padding-bottom: 32px; }
+.shot picture { display: block; }
 .shot img { display: block; margin: 0 auto; width: 100%; max-width: 980px; border-radius: 12px; box-shadow: var(--shot-shadow); }
 
 /* Sections */

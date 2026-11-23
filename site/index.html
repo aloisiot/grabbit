@@ -48,7 +48,10 @@
     </section>
 
     <section class="shot wrap" aria-label="{{t:shot.label}}">
-      <img src="{{base}}assets/screenshot.png" alt="{{t:shot.alt}}" width="1960" height="1520">
+      <picture>
+        <source srcset="{{base}}assets/screenshot-dark.png" media="(prefers-color-scheme: dark)">
+        <img src="{{base}}assets/screenshot.png" alt="{{t:shot.alt}}" width="1960" height="1520">
+      </picture>
     </section>
 
     <section id="features" class="wrap section">
