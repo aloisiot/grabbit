@@ -230,6 +230,7 @@ export const de: Messages = {
 
   errors: {
     private: "Dieses Video ist privat.",
+    playlist_unavailable: "Diese Playlist existiert nicht oder ist privat. Wenn sie dir gehört, stelle die Sichtbarkeit auf YouTube auf Öffentlich oder Nicht gelistet und versuche es erneut.",
     bot_check: "YouTube möchte bestätigt haben, dass du kein Bot bist. Aktualisiere yt-dlp in den Einstellungen oder versuche es später erneut.",
     age_restricted: "Dieses Video ist altersbeschränkt und erfordert ein angemeldetes Konto.",
     members_only: "Dieses Video ist nur für Kanalmitglieder.",

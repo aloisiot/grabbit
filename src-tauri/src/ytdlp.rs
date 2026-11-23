@@ -471,6 +471,9 @@ pub fn friendly_error(log: &[String], exit_code: Option<i32>) -> String {
     let lower = line.to_lowercase();
     let known = [
         ("private video", "E:private"),
+        // YouTube answers "The playlist does not exist" for private playlists too.
+        ("playlist does not exist", "E:playlist_unavailable"),
+        ("playlist is private", "E:playlist_unavailable"),
         ("not a bot", "E:bot_check"),
         ("confirm your age", "E:age_restricted"),
         ("members-only", "E:members_only"),
@@ -739,6 +742,13 @@ mod tests {
                 Some(1)
             ),
             "E:bot_check"
+        );
+        assert_eq!(
+            friendly_error(
+                &log("ERROR: [youtube:tab] PLabc: YouTube said: The playlist does not exist."),
+                Some(1)
+            ),
+            "E:playlist_unavailable"
         );
         assert_eq!(
             friendly_error(
