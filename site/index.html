@@ -6,12 +6,28 @@
   <title>{{t:meta.title}}</title>
   <meta name="description" content="{{t:meta.description}}">
   <meta name="color-scheme" content="light dark">
+  <meta name="theme-color" content="#f5f5f8" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#121216" media="(prefers-color-scheme: dark)">
+  <link rel="canonical" href="{{page_url}}">
+{{html:alternates}}
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Grabbit">
+  <meta property="og:url" content="{{page_url}}">
   <meta property="og:title" content="{{t:meta.title}}">
   <meta property="og:description" content="{{t:meta.ogDescription}}">
-  <meta property="og:type" content="website">
   <meta property="og:locale" content="{{og_locale}}">
-  <meta property="og:image" content="{{base}}assets/screenshot.png">
-{{html:alternates}}
+{{html:og_alternates}}
+  <meta property="og:image" content="{{site_url}}assets/og.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="{{t:shot.alt}}">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="{{t:meta.title}}">
+  <meta name="twitter:description" content="{{t:meta.ogDescription}}">
+  <meta name="twitter:image" content="{{site_url}}assets/og.png">
+  <meta name="twitter:image:alt" content="{{t:shot.alt}}">
+{{html:verification}}
+{{html:json_ld}}
   <link rel="icon" type="image/png" href="{{base}}assets/favicon.png">
   <link rel="apple-touch-icon" href="{{base}}assets/icon.png">
   <link rel="stylesheet" href="{{base}}style.css">
@@ -23,6 +39,7 @@
       <nav>
         <a class="nav-section" href="#features">{{t:nav.features}}</a>
         <a class="nav-section" href="#download">{{t:nav.download}}</a>
+        <a class="nav-section" href="#faq">{{t:nav.faq}}</a>
         <a href="https://github.com/aloisiot/grabbit">GitHub</a>
         <details class="lang">
           <summary aria-label="{{t:nav.language}}">{{html:current_flag}}{{lang_short}}</summary>
@@ -37,7 +54,7 @@
 {{html:suggest}}
   <main id="top">
     <section class="hero wrap">
-      <img class="hero-icon" src="{{base}}assets/icon.png" alt="{{t:hero.iconAlt}}" width="128" height="128">
+      <img class="hero-icon" src="{{base}}assets/icon.png" alt="{{t:hero.iconAlt}}" width="128" height="128" fetchpriority="high">
       <h1>{{t:hero.title_html}}</h1>
       <p class="lede">{{t:hero.lede}}</p>
       <p class="meta">{{t:hero.builtOn}}</p>
@@ -50,7 +67,8 @@
     <section class="shot wrap" aria-label="{{t:shot.label}}">
       <picture>
         <source srcset="{{base}}assets/screenshot-dark.png" media="(prefers-color-scheme: dark)">
-        <img src="{{base}}assets/screenshot.png" alt="{{t:shot.alt}}" width="1960" height="1520">
+        <img src="{{base}}assets/screenshot.png" alt="{{t:shot.alt}}" width="1960" height="1520" decoding="async">
+
       </picture>
     </section>
 
@@ -130,7 +148,15 @@
         </article>
       </div>
     </section>
+
+    <section id="faq" class="wrap section">
+      <h2>{{t:faq.title}}</h2>
+      <div class="faq">
+{{html:faq}}
+      </div>
+    </section>
   </main>
+
 
   <footer class="footer">
     <div class="wrap">

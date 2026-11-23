@@ -51,3 +51,27 @@ Grabbit ships in English, Portuguese (Brazil), Spanish, French and German.
 - Keep product names (Grabbit, yt-dlp, FFmpeg, Deno, MP4…) as they are, and
   use the labels the operating system itself shows (for example "Abrir Mesmo
   Assim" on macOS in Portuguese).
+
+## Website and search engines
+
+The landing page build (`npm run site:build`) writes, besides one page per
+language: `sitemap.xml` (every language linked to the others), `robots.txt`,
+`404.html`, and per page a canonical URL, Open Graph/Twitter tags, and
+schema.org data (`SoftwareApplication` and the FAQ). FAQ entries are the
+`faq.q1…q6`/`faq.a1…a6` keys in `site/i18n/*.json`; their count is
+`FAQ_COUNT` in `scripts/site-i18n.mjs`.
+
+Two optional repository variables (Settings → Secrets and variables →
+Actions → Variables) feed `.github/workflows/pages.yml`:
+
+- `SITE_URL`: the site's public address, e.g. `https://grabbit.app/`. Every
+  absolute URL (canonical, hreflang, Open Graph, sitemap) uses it. Empty means
+  `https://<owner>.github.io/<repo>/`.
+- `GOOGLE_SITE_VERIFICATION`: the token from Google Search Console's HTML-tag
+  verification, added as a meta tag.
+
+To move to a custom domain: set it in Settings → Pages (with this
+Actions-based deploy a `CNAME` file is ignored), add the DNS records GitHub
+shows, set `SITE_URL`, and re-run the "Landing page" workflow. `robots.txt` is
+only read at a domain's root, so it takes effect once the site has its own
+domain. After deploying, submit `<SITE_URL>sitemap.xml` in Search Console.

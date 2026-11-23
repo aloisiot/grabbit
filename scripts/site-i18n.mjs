@@ -31,6 +31,12 @@ export function flagSvg(code, id = "") {
 
 export const escapeHtml = (s) => String(s).replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
 
+/** Number of FAQ entries: keys faq.q1…faq.qN and faq.a1…faq.aN in every dictionary. */
+export const FAQ_COUNT = 6;
+
+/** JSON safe to put inside a <script> element. */
+const scriptJson = (value) => JSON.stringify(value).replace(/</g, "\\u003c");
+
 /** Load every dictionary and check each has exactly the keys of en.json. */
 export async function loadDictionaries(i18nDir) {
   const dicts = {};
@@ -60,6 +66,84 @@ function alternates(siteUrl) {
   return links.join("\n");
 }
 
+function ogAlternates(current) {
+  return LOCALES.filter((l) => l.code !== current.code)
+    .map((l) => `  <meta property="og:locale:alternate" content="${l.ogLocale}">`)
+    .join("\n");
+}
+
+function faqEntries(dict) {
+  return Array.from({ length: FAQ_COUNT }, (_, i) => ({ q: dict[`faq.q${i + 1}`], a: dict[`faq.a${i + 1}`] }));
+}
+
+/** FAQ as <details> items, so it works without JavaScript. */
+
+function faqHtml(dict) {
+  return faqEntries(dict)
+    .map(
+      ({ q, a }) => `        <details>
+          <summary>${escapeHtml(q)}</summary>
+          <p>${escapeHtml(a)}</p>
+        </details>`,
+    )
+    .join("\n");
+}
+
+/**
+ * schema.org data for search engines: the app itself and the FAQ.
+ * Google only shows software rich results with ratings, and FAQ rich results
+ * for few sites, so this mainly helps engines understand the page.
+ */
+function jsonLd({ locale, dict, values, pageUrl, siteUrl, repoUrl }) {
+  const app = {
+    "@type": "SoftwareApplication",
+    name: "Grabbit",
+    description: dict["meta.description"],
+    url: pageUrl,
+    applicationCategory: "MultimediaApplication",
+    operatingSystem: "macOS, Windows, Linux",
+    offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
+    downloadUrl: values.release_url,
+    screenshot: `${siteUrl}assets/screenshot.png`,
+    image: `${siteUrl}assets/icon.png`,
+    license: "https://opensource.org/licenses/MIT",
+    isAccessibleForFree: true,
+    inLanguage: locale.code,
+    sameAs: [repoUrl],
+  };
+  if (values.version && values.version !== "—") app.softwareVersion = values.version;
+  const faq = {
+    "@type": "FAQPage",
+    inLanguage: locale.code,
+    mainEntity: faqEntries(dict).map(({ q, a }) => ({
+      "@type": "Question",
+      name: q,
+      acceptedAnswer: { "@type": "Answer", text: a },
+    })),
+  };
+  return `  <script type="application/ld+json">${scriptJson({ "@context": "https://schema.org", "@graph": [app, faq] })}</script>`;
+}
+
+/** sitemap.xml with every language version linked to the others (hreflang). */
+export function sitemapXml(siteUrl, lastmod) {
+  const links = [
+    ...LOCALES.map((l) => `    <xhtml:link rel="alternate" hreflang="${l.code}" href="${escapeHtml(siteUrl + l.dir)}"/>`),
+    `    <xhtml:link rel="alternate" hreflang="x-default" href="${escapeHtml(siteUrl)}"/>`,
+  ].join("\n");
+  const urls = LOCALES.map(
+    (l) => `  <url>
+    <loc>${escapeHtml(siteUrl + l.dir)}</loc>
+    <lastmod>${lastmod}</lastmod>
+${links}
+  </url>`,
+  ).join("\n");
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">
+${urls}
+</urlset>
+`;
+}
+
 function languageMenu(current) {
   const base = baseFor(current.dir);
   return LOCALES.map((l) => {
@@ -80,7 +164,7 @@ function suggestion(dicts) {
     offers[l.code.split("-")[0].toLowerCase()] = { href: l.dir, lang: l.code, text: dicts[l.code]["suggest.prompt"] };
   }
   // Escape "<" so the JSON can't close the script tag.
-  const json = JSON.stringify(offers).replace(/</g, "\\u003c");
+  const json = scriptJson(offers);
   const banner = `  <div class="suggest" id="lang-suggest" hidden>
     <div class="wrap suggest-inner"><a id="lang-suggest-link" href=""></a><button type="button" id="lang-suggest-close" aria-label="Dismiss">×</button></div>
   </div>`;
@@ -117,9 +201,15 @@ const fill = (s, vars) => s.replace(/\{(\w+)\}/g, (m, k) => (k in vars ? vars[k]
  * Placeholders: {{t:key}} (escaped; keys ending in "_html" are trusted markup
  * from our own dictionaries), {{html:name}} (generated markup), and plain
  * values from `values` (escaped). Unknown placeholders throw.
+ * `siteUrl` is the absolute site root ending in "/"; `googleVerification`
+ * (optional) adds the Search Console verification tag.
  */
-export function renderLocale(template, { locale, dicts, values, siteUrl }) {
+export function renderLocale(
+  template,
+  { locale, dicts, values, siteUrl, repoUrl = "https://github.com/aloisiot/grabbit", googleVerification = "" },
+) {
   const dict = dicts[locale.code];
+  const pageUrl = siteUrl + locale.dir;
   // {version}/{date} inside dictionary strings; escaped like every value.
   const textVars = { version: escapeHtml(values.version), date: escapeHtml(values.date) };
   const s = suggestion(dicts);
@@ -127,19 +217,32 @@ export function renderLocale(template, { locale, dicts, values, siteUrl }) {
     alternates: alternates(siteUrl),
     languages: languageMenu(locale),
     current_flag: flagSvg(locale.code, "current"),
-
+    og_alternates: ogAlternates(locale),
+    faq: faqHtml(dict),
+    json_ld: jsonLd({ locale, dict, values, pageUrl, siteUrl, repoUrl }),
+    verification: googleVerification
+      ? `  <meta name="google-site-verification" content="${escapeHtml(googleVerification)}">`
+      : "",
     suggest: locale.code === "en" ? s.banner : "",
     suggest_script: locale.code === "en" ? s.script : "",
   };
-  const plain = { ...values, lang: locale.code, lang_short: locale.short, og_locale: locale.ogLocale, base: baseFor(locale.dir) };
+  const plain = {
+    ...values,
+    lang: locale.code,
+    lang_short: locale.short,
+    og_locale: locale.ogLocale,
+    base: baseFor(locale.dir),
+    page_url: pageUrl,
+    site_url: siteUrl,
+  };
 
   const out = template.replace(/\{\{([\w:.-]+)\}\}/g, (m, key) => {
     if (key.startsWith("t:")) {
       const k = key.slice(2);
       if (!(k in dict)) throw new Error(`Unknown key ${k} (in ${m}) for ${locale.code}`);
       return fill(k.endsWith("_html") ? dict[k] : escapeHtml(dict[k]), textVars);
-
     }
+
     if (key.startsWith("html:")) {
       const k = key.slice(5);
       if (!(k in html)) throw new Error(`Unknown placeholder ${m} in site/index.html`);
