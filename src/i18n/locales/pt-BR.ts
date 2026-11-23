@@ -156,6 +156,15 @@ export const ptBR: Messages = {
     resetTitle: "Restaurar padrões",
     resetConfirm: "Restaurar todos os padrões de download? Seus downloads, histórico e componentes instalados não são afetados.",
     resetOk: "Restaurar",
+    updates: "Atualizações",
+    updatesFooter: "O Grabbit procura uma nova versão sempre que é aberto.",
+    checkForUpdates: "Buscar Atualizações",
+    checkingUpdates: "Verificando…",
+    upToDate: "O Grabbit está atualizado.",
+    checkFailed: (error: string) => `Não foi possível buscar atualizações: ${error}`,
+    autoUpdate: "Instalar atualizações automaticamente",
+    autoUpdateOn: "Novas versões são instaladas quando o Grabbit abre",
+    autoUpdateOff: "O Grabbit pergunta antes de instalar uma nova versão",
   },
 
   components: {
@@ -192,6 +201,23 @@ export const ptBR: Messages = {
       installedVersion: (v) => `Instalado · versão ${v}`,
       installed: "Instalado",
     },
+  },
+
+  updater: {
+    checking: "Buscando atualizações…",
+    starting: "Iniciando…",
+    available: (version: string) => `Grabbit ${version} está disponível`,
+    availableDetail: (current: string) => `Você tem a versão ${current}. O Grabbit reinicia para concluir a atualização.`,
+    whatsNew: "Novidades",
+    install: "Instalar e Reiniciar",
+    later: "Depois",
+    autoUpdateTip: "Você pode instalar as atualizações automaticamente nos Ajustes.",
+    downloadsWillStop: "Os downloads em andamento serão interrompidos quando o Grabbit reiniciar.",
+    downloading: (version: string) => `Baixando o Grabbit ${version}…`,
+    installing: (version: string) => `Instalando o Grabbit ${version}…`,
+    restartHint: "O Grabbit vai reiniciar quando terminar.",
+    failed: "Não foi possível instalar a atualização.",
+    continue: "Continuar",
   },
 
   setup: {
