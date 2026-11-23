@@ -1,19 +1,13 @@
 import { open } from "@tauri-apps/plugin-dialog";
+import { getT, useT } from "../i18n";
 import { heightLabel } from "../lib/format";
 import type { DownloadOptions } from "../lib/types";
 import { Button, FormRow, Group, Icon, PopUp, Segmented, Switch, inputClass } from "./ui";
 
 export async function pickFolder(current: string): Promise<string | null> {
-  const dir = await open({ directory: true, defaultPath: current || undefined, title: "Choose download folder" });
+  const dir = await open({ directory: true, defaultPath: current || undefined, title: getT().options.chooseFolder });
   return typeof dir === "string" ? dir : null;
 }
-
-export const FORMAT_HINT: Record<string, string> = {
-  mp4: "Plays everywhere",
-  mkv: "Keeps the best-quality codecs",
-  mp3: "Most compatible",
-  m4a: "AAC, no re-encoding",
-};
 
 /** Download options as an inset grouped form: label on the left, control on the right. */
 export function OptionsPanel({
@@ -29,6 +23,8 @@ export function OptionsPanel({
   /** Languages with real subtitles, when known (single video). */
   subtitleLangs?: string[];
 }) {
+  const t = useT();
+  const o = t.options;
   const set = (patch: Partial<DownloadOptions>) => onChange({ ...options, ...patch });
   const video = options.mode === "video";
 
@@ -38,32 +34,32 @@ export function OptionsPanel({
   const subtitleNote =
     video && options.subtitles && subtitleLangs
       ? subtitleLangs.length > 0
-        ? `Subtitles available: ${subtitleLangs.slice(0, 12).join(", ")}${subtitleLangs.length > 12 ? "…" : ""}`
-        : "This video has no uploaded subtitles. Turn on auto-generated to get YouTube's automatic captions."
+        ? o.subtitlesAvailable(`${subtitleLangs.slice(0, 12).join(", ")}${subtitleLangs.length > 12 ? "…" : ""}`)
+        : o.noSubtitles
       : undefined;
 
   return (
-    <Group header="Options" footer={subtitleNote}>
-      <FormRow label="Download">
+    <Group header={o.header} footer={subtitleNote}>
+      <FormRow label={o.download}>
         <Segmented
-          label="Download type"
+          label={o.downloadType}
           value={options.mode}
           onChange={(mode) => set({ mode })}
           options={[
-            { value: "video", label: <><Icon name="film" className="size-3.5" /> Video</> },
-            { value: "audio", label: <><Icon name="music" className="size-3.5" /> Audio only</> },
+            { value: "video", label: <><Icon name="film" className="size-3.5" /> {t.common.video}</> },
+            { value: "audio", label: <><Icon name="music" className="size-3.5" /> {t.common.audioOnly}</> },
           ]}
         />
       </FormRow>
 
       {video && (
-        <FormRow label="Quality">
+        <FormRow label={o.quality}>
           <PopUp
-            label="Quality"
+            label={o.quality}
             value={String(options.maxHeight ?? "best")}
             onChange={(v) => set({ maxHeight: v === "best" ? null : Number(v) })}
           >
-            <option value="best">Best available</option>
+            <option value="best">{t.common.bestAvailable}</option>
             {offered.map((h) => (
               <option key={h} value={h}>
                 {heightLabel(h)}
@@ -74,9 +70,9 @@ export function OptionsPanel({
       )}
 
       {video ? (
-        <FormRow label="Format" detail={FORMAT_HINT[options.videoContainer]}>
+        <FormRow label={o.format} detail={o.formatHint[options.videoContainer]}>
           <PopUp
-            label="Format"
+            label={o.format}
             value={options.videoContainer}
             onChange={(v) => set({ videoContainer: v as DownloadOptions["videoContainer"] })}
           >
@@ -85,9 +81,9 @@ export function OptionsPanel({
           </PopUp>
         </FormRow>
       ) : (
-        <FormRow label="Format" detail={FORMAT_HINT[options.audioFormat]}>
+        <FormRow label={o.format} detail={o.formatHint[options.audioFormat]}>
           <PopUp
-            label="Format"
+            label={o.format}
             value={options.audioFormat}
             onChange={(v) => set({ audioFormat: v as DownloadOptions["audioFormat"] })}
           >
@@ -97,34 +93,34 @@ export function OptionsPanel({
         </FormRow>
       )}
 
-      <FormRow label="Embed title, thumbnail & chapters">
+      <FormRow label={o.embed}>
         <Switch
-          label="Embed title, thumbnail and chapters"
+          label={o.embedLabel}
           checked={options.embedMetadata}
           onChange={(embedMetadata) => set({ embedMetadata })}
         />
       </FormRow>
 
       {video && (
-        <FormRow label="Subtitles">
-          <Switch label="Subtitles" checked={options.subtitles} onChange={(subtitles) => set({ subtitles })} />
+        <FormRow label={o.subtitles}>
+          <Switch label={o.subtitles} checked={options.subtitles} onChange={(subtitles) => set({ subtitles })} />
         </FormRow>
       )}
       {video && options.subtitles && (
         <>
-          <FormRow label="Languages" detail="Comma-separated codes; en.* matches every English variant">
+          <FormRow label={o.languages} detail={o.languagesHint}>
             <input
               className={`${inputClass} h-6 w-32`}
               value={options.subLangs}
               onChange={(e) => set({ subLangs: e.target.value })}
               placeholder="en.*,es"
-              aria-label="Subtitle languages"
+              aria-label={o.subtitleLangsLabel}
               spellCheck={false}
             />
           </FormRow>
-          <FormRow label="Include auto-generated">
+          <FormRow label={o.autoGenerated}>
             <Switch
-              label="Include auto-generated subtitles"
+              label={o.autoGeneratedLabel}
               checked={options.autoSubtitles}
               onChange={(autoSubtitles) => set({ autoSubtitles })}
             />
@@ -132,7 +128,7 @@ export function OptionsPanel({
         </>
       )}
 
-      <FormRow label="Save to">
+      <FormRow label={o.saveTo}>
         <span className="min-w-0 truncate" title={options.outputDir}>
           {shortPath(options.outputDir)}
         </span>
@@ -143,7 +139,8 @@ export function OptionsPanel({
             if (dir) set({ outputDir: dir });
           }}
         >
-          Change…
+          {t.common.change}
+
         </Button>
       </FormRow>
     </Group>

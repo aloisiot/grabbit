@@ -1,16 +1,20 @@
 import { useEffect, useState } from "react";
 import { getVersion } from "@tauri-apps/api/app";
 import { ask } from "@tauri-apps/plugin-dialog";
+import { LOCALES, isLocale, useT } from "../i18n";
 import { api } from "../lib/ipc";
 import { heightLabel, STANDARD_HEIGHTS } from "../lib/format";
 import type { AudioFormat, VideoContainer } from "../lib/types";
 import { useSettings } from "../stores/settings";
 import { ComponentsGroup } from "./Components";
-import { FORMAT_HINT, pickFolder, shortPath } from "./OptionsPanel";
+import { pickFolder, shortPath } from "./OptionsPanel";
 import { Button, FormRow, Group, Icon, PopUp, Segmented, Switch, inputClass } from "./ui";
 
 /** Settings as inset grouped rows, like the Download page and macOS System Settings. */
 export function SettingsView() {
+  const t = useT();
+  const s = t.settings;
+  const o = t.options;
   const { settings, update, reset } = useSettings();
   const [version, setVersion] = useState<string | null>(null);
 
@@ -21,22 +25,37 @@ export function SettingsView() {
   }, []);
 
   async function resetToDefaults() {
-    const ok = await ask(
-      "Restore every download default? Your downloads, history and installed components aren't affected.",
-      { title: "Reset to Defaults", kind: "warning", okLabel: "Reset", cancelLabel: "Cancel" },
-    );
+    const ok = await ask(s.resetConfirm, { title: s.resetTitle, kind: "warning", okLabel: s.resetOk, cancelLabel: t.common.cancel });
     if (ok) await reset();
   }
 
   return (
     <div className="mx-auto flex w-full max-w-[640px] flex-col gap-6">
-      <Group header="Downloads" footer="Defaults for new downloads. You can still change them for each download.">
-        <FormRow label="Save to">
+      <Group header={s.language}>
+        <FormRow label={s.language}>
+          <PopUp
+            label={s.language}
+            value={settings.language}
+            onChange={(v) => update({ language: isLocale(v) ? v : "system" })}
+          >
+            <option value="system">🌐 {s.languageSystem}</option>
+            {Object.entries(LOCALES).map(([code, l]) => (
+              <option key={code} value={code} lang={code}>
+                {l.flag} {l.name}
+              </option>
+            ))}
+
+          </PopUp>
+        </FormRow>
+      </Group>
+
+      <Group header={s.downloads} footer={s.downloadsFooter}>
+        <FormRow label={o.saveTo}>
           <span className="min-w-0 truncate" title={settings.outputDir}>
             {shortPath(settings.outputDir)}
           </span>
-          <Button size="sm" variant="ghost" onClick={() => api.openFile(settings.outputDir)} title="Open the download folder">
-            <Icon name="folder" className="size-3.5" /> Open
+          <Button size="sm" variant="ghost" onClick={() => api.openFile(settings.outputDir)} title={s.openFolderTitle}>
+            <Icon name="folder" className="size-3.5" /> {t.common.open}
           </Button>
           <Button
             size="sm"
@@ -45,12 +64,12 @@ export function SettingsView() {
               if (dir) await update({ outputDir: dir });
             }}
           >
-            Change…
+            {t.common.change}
           </Button>
         </FormRow>
-        <FormRow label="Simultaneous downloads" detail="How many run at the same time">
+        <FormRow label={s.concurrency} detail={s.concurrencyHint}>
           <PopUp
-            label="Simultaneous downloads"
+            label={s.concurrency}
             value={String(settings.concurrency)}
             onChange={(v) => update({ concurrency: Number(v) })}
           >
@@ -63,35 +82,35 @@ export function SettingsView() {
         </FormRow>
       </Group>
 
-      <Group header="Default format">
-        <FormRow label="Download">
+      <Group header={s.defaultFormat}>
+        <FormRow label={o.download}>
           <Segmented
-            label="Default download type"
+            label={s.defaultDownloadType}
             value={settings.mode}
             onChange={(mode) => update({ mode })}
             options={[
-              { value: "video", label: <><Icon name="film" className="size-3.5" /> Video</> },
-              { value: "audio", label: <><Icon name="music" className="size-3.5" /> Audio only</> },
+              { value: "video", label: <><Icon name="film" className="size-3.5" /> {t.common.video}</> },
+              { value: "audio", label: <><Icon name="music" className="size-3.5" /> {t.common.audioOnly}</> },
             ]}
           />
         </FormRow>
-        <FormRow label="Video quality">
+        <FormRow label={s.videoQuality}>
           <PopUp
-            label="Video quality"
+            label={s.videoQuality}
             value={String(settings.maxHeight ?? "best")}
             onChange={(v) => update({ maxHeight: v === "best" ? null : Number(v) })}
           >
-            <option value="best">Best available</option>
+            <option value="best">{t.common.bestAvailable}</option>
             {STANDARD_HEIGHTS.map((h) => (
               <option key={h} value={h}>
-                Up to {heightLabel(h)}
+                {s.upTo(heightLabel(h))}
               </option>
             ))}
           </PopUp>
         </FormRow>
-        <FormRow label="Video format" detail={FORMAT_HINT[settings.videoContainer]}>
+        <FormRow label={s.videoFormat} detail={o.formatHint[settings.videoContainer]}>
           <PopUp
-            label="Video format"
+            label={s.videoFormat}
             value={settings.videoContainer}
             onChange={(v) => update({ videoContainer: v as VideoContainer })}
           >
@@ -99,40 +118,40 @@ export function SettingsView() {
             <option value="mkv">MKV</option>
           </PopUp>
         </FormRow>
-        <FormRow label="Audio format" detail={FORMAT_HINT[settings.audioFormat]}>
-          <PopUp label="Audio format" value={settings.audioFormat} onChange={(v) => update({ audioFormat: v as AudioFormat })}>
+        <FormRow label={s.audioFormat} detail={o.formatHint[settings.audioFormat]}>
+          <PopUp label={s.audioFormat} value={settings.audioFormat} onChange={(v) => update({ audioFormat: v as AudioFormat })}>
             <option value="mp3">MP3</option>
             <option value="m4a">M4A</option>
           </PopUp>
         </FormRow>
-        <FormRow label="Embed title, thumbnail & chapters">
+        <FormRow label={o.embed}>
           <Switch
-            label="Embed title, thumbnail and chapters"
+            label={o.embedLabel}
             checked={settings.embedMetadata}
             onChange={(embedMetadata) => update({ embedMetadata })}
           />
         </FormRow>
       </Group>
 
-      <Group header="Subtitles">
-        <FormRow label="Download subtitles" detail="Embedded in video downloads">
-          <Switch label="Download subtitles" checked={settings.subtitles} onChange={(subtitles) => update({ subtitles })} />
+      <Group header={s.subtitles}>
+        <FormRow label={s.downloadSubtitles} detail={s.downloadSubtitlesHint}>
+          <Switch label={s.downloadSubtitles} checked={settings.subtitles} onChange={(subtitles) => update({ subtitles })} />
         </FormRow>
         {settings.subtitles && (
           <>
-            <FormRow label="Languages" detail="Comma-separated codes; en.* matches every English variant">
+            <FormRow label={o.languages} detail={o.languagesHint}>
               <input
                 className={`${inputClass} h-6 w-32`}
                 value={settings.subLangs}
                 onChange={(e) => update({ subLangs: e.target.value })}
                 placeholder="en.*,es"
-                aria-label="Subtitle languages"
+                aria-label={o.subtitleLangsLabel}
                 spellCheck={false}
               />
             </FormRow>
-            <FormRow label="Include auto-generated">
+            <FormRow label={o.autoGenerated}>
               <Switch
-                label="Include auto-generated subtitles"
+                label={o.autoGeneratedLabel}
                 checked={settings.autoSubtitles}
                 onChange={(autoSubtitles) => update({ autoSubtitles })}
               />
@@ -144,37 +163,32 @@ export function SettingsView() {
       <ComponentsGroup />
 
       <Group
-        header="About"
-        footer={
-          <>
-            Grabbit runs on yt-dlp (Unlicense), FFmpeg (LGPL/GPL) and Deno (MIT), downloaded separately under their own
-            licenses. Only download content you have the right to; you're responsible for following the terms of the sites
-            you use and copyright law in your country.
-          </>
-        }
+        header={s.about}
+        footer={s.aboutFooter}
       >
-        <FormRow label="Version">
+        <FormRow label={s.version}>
           <span className="tabular-nums">{version ?? "—"}</span>
           <Button size="sm" variant="plain" onClick={() => api.openLink("releases")}>
-            Release notes <Icon name="external" className="size-3" />
+            {s.releaseNotes} <Icon name="external" className="size-3" />
           </Button>
         </FormRow>
-        <FormRow label="Source code">
+        <FormRow label={s.sourceCode}>
           <Button size="sm" variant="plain" onClick={() => api.openLink("repository")}>
             GitHub <Icon name="external" className="size-3" />
           </Button>
         </FormRow>
-        <FormRow label="Report a problem">
+        <FormRow label={s.reportProblem}>
           <Button size="sm" variant="plain" onClick={() => api.openLink("issues")}>
-            Open an Issue <Icon name="external" className="size-3" />
+            {s.openIssue} <Icon name="external" className="size-3" />
           </Button>
         </FormRow>
-        <FormRow label="License">MIT</FormRow>
+        <FormRow label={s.license}>MIT</FormRow>
       </Group>
 
       <div className="flex justify-center pb-2">
         <Button variant="ghost" size="sm" onClick={resetToDefaults}>
-          Reset to Defaults…
+          {s.reset}
+
         </Button>
       </div>
     </div>

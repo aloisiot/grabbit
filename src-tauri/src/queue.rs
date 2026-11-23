@@ -45,7 +45,8 @@ pub struct Job {
     pub options: DownloadOptions,
     pub playlist: Option<PlaylistContext>,
     pub status: JobStatus,
-    /// Short description of the current step, e.g. "Merging video and audio".
+    /// Code for the current step, translated by the UI: "starting", "cancelling",
+    /// "downloading", "part:2", or "pp:<postprocessor>".
     pub stage: Option<String>,
     pub percent: Option<f64>,
     pub downloaded_bytes: Option<u64>,
@@ -187,7 +188,7 @@ fn schedule(app: &AppHandle) {
             .take(slots)
         {
             job.status = JobStatus::Downloading;
-            job.stage = Some("Starting".into());
+            job.stage = Some("starting".into());
             started.push(job.clone());
         }
         for j in &started {
@@ -222,7 +223,7 @@ pub fn cancel(app: &AppHandle, id: &str) {
         update(app, id, |j| j.stage = None);
     }
     if let Some(pid) = pid {
-        update(app, id, |j| j.stage = Some("Cancelling".into()));
+        update(app, id, |j| j.stage = Some("cancelling".into()));
         process::kill_tree(pid);
     }
 }
@@ -353,7 +354,7 @@ async fn run_job(app: AppHandle, job: Job) {
 /// Run yt-dlp for one job. Returns the final file path on success.
 async fn execute(app: &AppHandle, job: &Job) -> Result<Option<String>, String> {
     let (ytdlp_path, _) = binaries::find_executable(app, "yt-dlp")
-        .ok_or("yt-dlp isn't installed. Install it under Settings → Components.")?;
+        .ok_or("E:ytdlp_missing")?;
     let ffmpeg = binaries::find_executable(app, "ffmpeg").map(|(p, _)| p);
     let deno = binaries::find_executable(app, "deno").map(|(p, _)| p);
     let tools = ytdlp::Tools {
@@ -363,7 +364,7 @@ async fn execute(app: &AppHandle, job: &Job) -> Result<Option<String>, String> {
     let args = ytdlp::build_args(&job.url, &job.options, job.playlist.as_ref(), &tools);
 
     std::fs::create_dir_all(&job.options.output_dir)
-        .map_err(|e| format!("Can't use the download folder: {e}"))?;
+        .map_err(|e| format!("E:download_folder:{e}"))?;
 
     let mut cmd = process::command(&ytdlp_path);
     cmd.args(&args)
@@ -375,7 +376,7 @@ async fn execute(app: &AppHandle, job: &Job) -> Result<Option<String>, String> {
     process::isolate(&mut cmd);
     let mut child = cmd
         .spawn()
-        .map_err(|e| format!("Couldn't start yt-dlp: {e}"))?;
+        .map_err(|e| format!("E:ytdlp_start_failed:{e}"))?;
 
     // Register the pid; honour a cancel that arrived while we were starting.
     let cancelled_early = {
@@ -445,10 +446,11 @@ async fn execute(app: &AppHandle, job: &Job) -> Result<Option<String>, String> {
                 update(app, &job.id, |j| {
                     j.status = JobStatus::Downloading;
                     j.stage = Some(if part > 1 {
-                        format!("Downloading · part {part}")
+                        format!("part:{part}")
                     } else {
-                        "Downloading".into()
+                        "downloading".into()
                     });
+
                     j.downloaded_bytes = downloaded;
                     j.total_bytes = total.or(j.total_bytes);
                     j.speed = speed;

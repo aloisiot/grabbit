@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { describeError, stageLabel, useT } from "../i18n";
 import { api } from "../lib/ipc";
 import { fileName, formatBytes, formatEta, formatSpeed } from "../lib/format";
 import type { Job } from "../lib/types";
@@ -6,6 +7,7 @@ import { isActive, isFinished, useQueue } from "../stores/queue";
 import { Button, IconButton, Icon, ProgressBar, Thumb } from "./ui";
 
 export function QueueList() {
+  const t = useT();
   const jobs = useQueue((s) => s.jobs);
   if (jobs.length === 0) return null;
 
@@ -17,14 +19,14 @@ export function QueueList() {
     <section className="flex flex-col gap-2">
       <div className="flex items-center justify-between pt-2">
         <h2 className="text-sm font-semibold text-zinc-700 dark:text-zinc-200">
-          Queue{" "}
+          {t.queue.title}{" "}
           <span className="font-normal text-zinc-500 dark:text-zinc-400">
-            {[active && `${active} downloading`, queued && `${queued} waiting`].filter(Boolean).join(" · ")}
+            {[active && t.queue.downloading(active), queued && t.queue.waiting(queued)].filter(Boolean).join(" · ")}
           </span>
         </h2>
         {finished > 0 && (
           <Button size="sm" variant="ghost" onClick={() => api.clearFinished()}>
-            Clear finished
+            {t.queue.clearFinished}
           </Button>
         )}
       </div>
@@ -38,18 +40,21 @@ export function QueueList() {
 }
 
 function JobRow({ job }: { job: Job }) {
+  const t = useT();
+  const q = t.queue;
+  const stage = stageLabel(job.stage, t);
   const [showLog, setShowLog] = useState(false);
   const active = isActive(job);
 
   let detail: string;
   switch (job.status) {
     case "queued":
-      detail = "Waiting…";
+      detail = q.statusWaiting;
       break;
     case "downloading":
       detail = [
-        job.stage,
-        job.totalBytes ? `${formatBytes(job.downloadedBytes)} of ${formatBytes(job.totalBytes)}` : null,
+        stage,
+        job.totalBytes ? t.common.of(formatBytes(job.downloadedBytes), formatBytes(job.totalBytes)) : null,
         formatSpeed(job.speed),
         formatEta(job.eta),
       ]
@@ -57,16 +62,16 @@ function JobRow({ job }: { job: Job }) {
         .join(" · ");
       break;
     case "processing":
-      detail = `${job.stage ?? "Processing"}…`;
+      detail = `${stage ?? q.processing}…`;
       break;
     case "done":
-      detail = fileName(job.filepath) || "Done";
+      detail = fileName(job.filepath) || t.common.done;
       break;
     case "cancelled":
-      detail = "Cancelled";
+      detail = q.cancelled;
       break;
     case "error":
-      detail = job.error ?? "Failed";
+      detail = job.error ? describeError(job.error, t) : t.common.failed;
       break;
   }
 
@@ -111,30 +116,31 @@ function JobRow({ job }: { job: Job }) {
         <div className="flex shrink-0 items-center gap-1">
           {job.status === "done" && job.filepath && (
             <>
-              <IconButton label="Open file" onClick={() => api.openFile(job.filepath!)}>
+              <IconButton label={t.common.openFile} onClick={() => api.openFile(job.filepath!)}>
                 <Icon name="play" />
               </IconButton>
-              <IconButton label="Show in folder" onClick={() => api.revealFile(job.filepath!)}>
+              <IconButton label={t.common.showInFolder} onClick={() => api.revealFile(job.filepath!)}>
                 <Icon name="folder" />
               </IconButton>
             </>
           )}
           {(job.status === "error" || job.status === "cancelled") && (
-            <IconButton label="Retry" onClick={() => api.retryJob(job.id)}>
+            <IconButton label={t.common.retry} onClick={() => api.retryJob(job.id)}>
               <Icon name="retry" />
             </IconButton>
           )}
           {job.status === "error" && job.log.length > 0 && (
             <Button size="sm" variant="ghost" onClick={() => setShowLog((v) => !v)}>
-              {showLog ? "Hide details" : "Details"}
+              {showLog ? q.hideDetails : q.details}
             </Button>
           )}
           {active || job.status === "queued" ? (
-            <IconButton label="Cancel" variant="danger" onClick={() => api.cancelJob(job.id)}>
+            <IconButton label={t.common.cancel} variant="danger" onClick={() => api.cancelJob(job.id)}>
               <Icon name="x" />
             </IconButton>
           ) : (
-            <IconButton label="Remove from list" onClick={() => api.removeJob(job.id)}>
+            <IconButton label={q.removeFromList} onClick
+={() => api.removeJob(job.id)}>
               <Icon name="x" />
             </IconButton>
           )}

@@ -239,7 +239,7 @@ pub async fn latest_ytdlp_version() -> Result<String, String> {
         .send()
         .await
         .and_then(|r| r.error_for_status())
-        .map_err(|e| format!("Couldn't reach GitHub: {e}"))?
+        .map_err(|e| format!("E:github_unreachable:{e}"))?
         .json()
         .await
         .map_err(|e| format!("Unexpected GitHub response: {e}"))?;
@@ -272,7 +272,7 @@ struct Asset {
 
 fn unsupported() -> String {
     format!(
-        "Automatic install isn't available for {} {}. Install it with your package manager and Grabbit will find it.",
+        "E:unsupported_platform:{} {}",
         std::env::consts::OS,
         std::env::consts::ARCH
     )
@@ -590,10 +590,7 @@ async fn install_inner(r: &mut Reporter<'_>) -> Result<(PathBuf, Option<String>)
         };
         if &actual != expected {
             let _ = tokio::fs::remove_file(&tmp).await;
-            return Err(format!(
-                "Checksum mismatch for {}: the download was corrupted or tampered with. Please try again.",
-                asset.sums_name
-            ));
+            return Err(format!("E:checksum_mismatch:{}", asset.sums_name));
         }
         r.emit("extracting");
         let (tmp2, dir2, asset2) = (tmp.clone(), dir.clone(), asset.clone());
@@ -612,10 +609,7 @@ async fn install_inner(r: &mut Reporter<'_>) -> Result<(PathBuf, Option<String>)
     let path = dir.join(exe(c.executables()[0]));
     let version = version_of(&path, c).await;
     if version.is_none() {
-        return Err(format!(
-            "{} was downloaded but wouldn't run on this computer. Try Reinstall, or install it with your package manager.",
-            c.id()
-        ));
+        return Err(format!("E:wont_run:{}", c.id()));
     }
     Ok((path, version))
 }
@@ -640,7 +634,7 @@ async fn download_to(
     let mut stream = resp.bytes_stream();
     while let Some(chunk) = stream.next().await {
         let chunk = chunk
-            .map_err(|e| format!("Download interrupted: {e}. Check your connection and retry."))?;
+            .map_err(|e| format!("E:download_interrupted:{e}"))?;
         hasher.update(&chunk);
         file.write_all(&chunk).await.map_err(|e| e.to_string())?;
         r.add_bytes(chunk.len() as u64);
@@ -712,9 +706,8 @@ fn extract(archive_path: &Path, asset: &Asset, dir: &Path) -> Result<(), String>
                     .status()
                     .map_err(|e| format!("Couldn't run tar: {e}"))?;
                 if !status.success() {
-                    return Err(
-                        "Extracting the ffmpeg archive failed (is xz installed?)".to_string()
-                    );
+                    return Err("E:xz_failed".to_string());
+
                 }
                 let mut found = Vec::new();
                 for member in &asset.members {

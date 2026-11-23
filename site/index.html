@@ -1,120 +1,129 @@
 <!doctype html>
-<html lang="en">
+<html lang="{{lang}}">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Grabbit — free YouTube video &amp; audio downloader</title>
-  <meta name="description" content="Grabbit is a free, open-source desktop app for downloading YouTube videos, playlists and audio, built on yt-dlp. For macOS, Windows and Linux.">
+  <title>{{t:meta.title}}</title>
+  <meta name="description" content="{{t:meta.description}}">
   <meta name="color-scheme" content="light dark">
-  <meta property="og:title" content="Grabbit — free YouTube video & audio downloader">
-  <meta property="og:description" content="Paste a YouTube link, choose video or audio and a quality, and download. Free and open source, for macOS, Windows and Linux.">
+  <meta property="og:title" content="{{t:meta.title}}">
+  <meta property="og:description" content="{{t:meta.ogDescription}}">
   <meta property="og:type" content="website">
-  <meta property="og:image" content="assets/screenshot.png">
-  <link rel="icon" type="image/png" href="assets/favicon.png">
-  <link rel="apple-touch-icon" href="assets/icon.png">
-  <link rel="stylesheet" href="style.css">
+  <meta property="og:locale" content="{{og_locale}}">
+  <meta property="og:image" content="{{base}}assets/screenshot.png">
+{{html:alternates}}
+  <link rel="icon" type="image/png" href="{{base}}assets/favicon.png">
+  <link rel="apple-touch-icon" href="{{base}}assets/icon.png">
+  <link rel="stylesheet" href="{{base}}style.css">
 </head>
 <body>
   <header class="nav">
     <div class="wrap nav-inner">
-      <a class="brand" href="#top"><img src="assets/icon.png" alt="" width="28" height="28"> Grabbit</a>
+      <a class="brand" href="#top"><img src="{{base}}assets/icon.png" alt="" width="28" height="28"> Grabbit</a>
       <nav>
-        <a href="#features">Features</a>
-        <a href="#download">Download</a>
+        <a class="nav-section" href="#features">{{t:nav.features}}</a>
+        <a class="nav-section" href="#download">{{t:nav.download}}</a>
         <a href="https://github.com/aloisiot/grabbit">GitHub</a>
+        <details class="lang">
+          <summary aria-label="{{t:nav.language}}">{{html:current_flag}}{{lang_short}}</summary>
+
+          <ul>
+{{html:languages}}
+          </ul>
+        </details>
       </nav>
     </div>
   </header>
-
+{{html:suggest}}
   <main id="top">
     <section class="hero wrap">
-      <img class="hero-icon" src="assets/icon.png" alt="Grabbit app icon" width="128" height="128">
-      <h1>Download YouTube videos and audio.<br>Nothing else in the way.</h1>
-      <p class="lede">Grabbit is a free, open-source desktop app for saving YouTube videos, playlists and channels to your computer. Paste a YouTube link, pick video or audio and a quality, and download.</p>
-      <p class="meta">Built on yt-dlp, so hundreds of other video sites work too.</p>
+      <img class="hero-icon" src="{{base}}assets/icon.png" alt="{{t:hero.iconAlt}}" width="128" height="128">
+      <h1>{{t:hero.title_html}}</h1>
+      <p class="lede">{{t:hero.lede}}</p>
+      <p class="meta">{{t:hero.builtOn}}</p>
       <div class="cta">
-        <a class="btn btn-primary" href="#download">Download</a>
+        <a class="btn btn-primary" href="#download">{{t:hero.cta}}</a>
       </div>
-      <p class="meta">Version {{version}} · released {{date}} · <a href="{{release_url}}">release notes</a></p>
+      <p class="meta">{{t:release.line}}<a href="{{release_url}}">{{t:release.notes}}</a></p>
     </section>
 
-    <section class="shot wrap" aria-label="Screenshot">
-      <img src="assets/screenshot.png" alt="Grabbit with a video link fetched, showing video or audio, quality, format, subtitle and save-location options" width="1960" height="1520">
+    <section class="shot wrap" aria-label="{{t:shot.label}}">
+      <img src="{{base}}assets/screenshot.png" alt="{{t:shot.alt}}" width="1960" height="1520">
     </section>
 
     <section id="features" class="wrap section">
-      <h2>Everything you need, nothing you don't</h2>
+      <h2>{{t:features.title}}</h2>
       <div class="features">
         <article>
-          <h3>Video or audio</h3>
-          <p>Save a YouTube video as MP4 that plays everywhere or MKV with the best codecs. Or keep just the audio as MP3 or M4A.</p>
+          <h3>{{t:features.mode.title}}</h3>
+          <p>{{t:features.mode.body}}</p>
         </article>
         <article>
-          <h3>Real quality options</h3>
-          <p>The picker lists the resolutions each YouTube video actually has. No guessing.</p>
+          <h3>{{t:features.quality.title}}</h3>
+          <p>{{t:features.quality.body}}</p>
         </article>
         <article>
-          <h3>Download queue</h3>
-          <p>Several downloads at once, with live progress, cancel and retry.</p>
+          <h3>{{t:features.queue.title}}</h3>
+          <p>{{t:features.queue.body}}</p>
         </article>
         <article>
-          <h3>YouTube playlists and channels</h3>
-          <p>Paste a playlist or channel link, see every video and choose which ones to grab. Each playlist gets its own folder.</p>
+          <h3>{{t:features.playlists.title}}</h3>
+          <p>{{t:features.playlists.body}}</p>
         </article>
         <article>
-          <h3>Subtitles and metadata</h3>
-          <p>Embed YouTube subtitles (uploaded or auto-generated), title, thumbnail and chapters straight into the file.</p>
+          <h3>{{t:features.subtitles.title}}</h3>
+          <p>{{t:features.subtitles.body}}</p>
         </article>
         <article>
-          <h3>Fixes itself</h3>
-          <p>When a YouTube change breaks downloads, update the yt-dlp engine from inside the app. No new release needed.</p>
+          <h3>{{t:features.update.title}}</h3>
+          <p>{{t:features.update.body}}</p>
         </article>
       </div>
     </section>
 
     <section id="download" class="wrap section">
-      <h2>Download</h2>
-      <p class="section-lede">Version {{version}}, released {{date}}. Free, forever.</p>
+      <h2>{{t:download.title}}</h2>
+      <p class="section-lede">{{t:download.lede}}</p>
       <div class="platforms-grid">
         <article class="platform">
           <h3>macOS</h3>
-          <p class="req">Apple Silicon or Intel</p>
-          <a class="btn btn-row" href="{{href:mac-arm}}">Apple Silicon <span>.dmg · {{size:mac-arm}}</span></a>
-          <a class="btn btn-row" href="{{href:mac-x64}}">Intel <span>.dmg · {{size:mac-x64}}</span></a>
-          <p class="hint">M1 or newer? Choose Apple Silicon.</p>
+          <p class="req">{{t:download.macReq}}</p>
+          <a class="btn btn-row" href="{{href:mac-arm}}">{{t:download.appleSilicon}} <span>.dmg · {{size:mac-arm}}</span></a>
+          <a class="btn btn-row" href="{{href:mac-x64}}">{{t:download.intel}} <span>.dmg · {{size:mac-x64}}</span></a>
+          <p class="hint">{{t:download.macHint}}</p>
         </article>
         <article class="platform">
           <h3>Windows</h3>
-          <p class="req">Windows 10 or later, 64-bit</p>
-          <a class="btn btn-row" href="{{href:win-exe}}">Installer <span>.exe · {{size:win-exe}}</span></a>
-          <a class="btn btn-row" href="{{href:win-msi}}">MSI package <span>.msi · {{size:win-msi}}</span></a>
+          <p class="req">{{t:download.winReq}}</p>
+          <a class="btn btn-row" href="{{href:win-exe}}">{{t:download.installer}} <span>.exe · {{size:win-exe}}</span></a>
+          <a class="btn btn-row" href="{{href:win-msi}}">{{t:download.msi}} <span>.msi · {{size:win-msi}}</span></a>
         </article>
         <article class="platform">
           <h3>Linux</h3>
-          <p class="req">64-bit (x86_64)</p>
+          <p class="req">{{t:download.linuxReq}}</p>
           <a class="btn btn-row" href="{{href:linux-appimage}}">AppImage <span>{{size:linux-appimage}}</span></a>
           <a class="btn btn-row" href="{{href:linux-deb}}">Debian / Ubuntu <span>.deb · {{size:linux-deb}}</span></a>
           <a class="btn btn-row" href="{{href:linux-rpm}}">Fedora / openSUSE <span>.rpm · {{size:linux-rpm}}</span></a>
         </article>
       </div>
-      <p class="all-releases"><a href="https://github.com/aloisiot/grabbit/releases">All releases on GitHub →</a></p>
+      <p class="all-releases"><a href="https://github.com/aloisiot/grabbit/releases">{{t:download.allReleases}}</a></p>
     </section>
 
     <section id="first-run" class="wrap section">
-      <h2>Opening Grabbit the first time</h2>
-      <p class="section-lede">Grabbit isn't signed with a paid developer certificate yet, so your system asks you to confirm once.</p>
+      <h2>{{t:firstRun.title}}</h2>
+      <p class="section-lede">{{t:firstRun.lede}}</p>
       <div class="steps">
         <article>
           <h3>macOS</h3>
-          <p>Open the .dmg and drag Grabbit to Applications. When you see “Apple could not verify Grabbit”, click <b>Done</b>. Then open <b>System Settings → Privacy &amp; Security</b>, scroll down and click <b>Open Anyway</b>.</p>
+          <p>{{t:firstRun.mac_html}}</p>
         </article>
         <article>
           <h3>Windows</h3>
-          <p>If SmartScreen says “Windows protected your PC”, click <b>More info</b>, then <b>Run anyway</b>.</p>
+          <p>{{t:firstRun.windows_html}}</p>
         </article>
         <article>
           <h3>Linux</h3>
-          <p>Install the .deb or .rpm with your package manager. For the AppImage, run <code>chmod +x</code> on it, then open it.</p>
+          <p>{{t:firstRun.linux_html}}</p>
         </article>
       </div>
     </section>
@@ -122,10 +131,10 @@
 
   <footer class="footer">
     <div class="wrap">
-      <p>Grabbit is free and open source under the MIT license. <a href="https://github.com/aloisiot/grabbit">Source code on GitHub</a>.</p>
-      <p class="credits">Powered by <a href="https://github.com/yt-dlp/yt-dlp">yt-dlp</a>, <a href="https://ffmpeg.org">FFmpeg</a> and <a href="https://deno.com">Deno</a>. Download only content you have the right to. Grabbit is not affiliated with YouTube or Google.</p>
+      <p>{{t:footer.license}} <a href="https://github.com/aloisiot/grabbit">{{t:footer.source}}</a>.</p>
+      <p class="credits">{{t:footer.poweredBy}} <a href="https://github.com/yt-dlp/yt-dlp">yt-dlp</a>, <a href="https://ffmpeg.org">FFmpeg</a> {{t:footer.and}} <a href="https://deno.com">Deno</a>. {{t:footer.disclaimer}}</p>
     </div>
   </footer>
-
+{{html:suggest_script}}
 </body>
 </html>
