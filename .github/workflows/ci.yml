@@ -1,9 +1,18 @@
 name: CI
 
+# Skipped when a change only touches the landing page; pages.yml builds that.
 on:
   push:
     branches: [main]
+    paths-ignore:
+      - "site/**"
+      - "scripts/build-site.mjs"
+      - ".github/workflows/pages.yml"
   pull_request:
+    paths-ignore:
+      - "site/**"
+      - "scripts/build-site.mjs"
+      - ".github/workflows/pages.yml"
 
 concurrency:
   group: ci-${{ github.ref }}

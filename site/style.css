@@ -70,9 +70,41 @@ code { font: 0.9em ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; bac
 .nav-inner { display: flex; align-items: center; justify-content: space-between; height: 52px; }
 .brand { display: flex; align-items: center; gap: 8px; color: var(--label); font-weight: 600; }
 .brand:hover { text-decoration: none; }
-.nav nav { display: flex; gap: 20px; font-size: 14px; }
+.nav nav { display: flex; align-items: center; gap: 20px; font-size: 14px; }
 .nav nav a { color: var(--label-2); }
 .nav nav a:hover { color: var(--label); text-decoration: none; }
+
+/* Language menu: a plain <details>, so it works without JavaScript. */
+.lang { position: relative; }
+.lang summary {
+  list-style: none; cursor: pointer; display: inline-flex; align-items: center; gap: 4px;
+  height: 28px; padding: 0 8px; border-radius: var(--radius-control);
+  color: var(--label-2); font-weight: 600; font-size: 13px;
+}
+.lang summary::-webkit-details-marker { display: none; }
+.lang summary::after { content: ""; width: 6px; height: 6px; border: solid currentColor; border-width: 0 1.5px 1.5px 0; transform: translateY(-2px) rotate(45deg); }
+.lang summary:hover, .lang[open] summary { background: var(--fill); color: var(--label); }
+.lang summary:focus-visible { outline: 3px solid color-mix(in oklch, var(--accent) 45%, transparent); outline-offset: 2px; }
+.lang ul {
+  position: absolute; right: 0; top: calc(100% + 6px); margin: 0; padding: 4px; list-style: none;
+  min-width: 190px; background: var(--surface); border-radius: var(--radius); box-shadow: var(--elev), 0 8px 24px -8px rgb(0 0 0 / 0.25);
+}
+.lang li a { display: flex; align-items: center; gap: 10px; padding: 7px 10px; border-radius: 6px; color: var(--label); }
+.lang .flag { flex: none; width: 20px; height: 13px; border-radius: 2px; box-shadow: 0 0 0 0.5px rgb(0 0 0 / 0.15); }
+.lang summary .flag { margin-right: 2px; }
+
+.lang li a:hover { background: var(--fill); }
+.lang li a[aria-current="page"] { color: var(--accent); font-weight: 600; }
+
+/* "View this page in …?" offer on the English page. */
+.suggest { background: var(--accent-soft); font-size: 14px; }
+.suggest-inner { display: flex; align-items: center; justify-content: center; gap: 12px; min-height: 40px; }
+.suggest a { color: var(--accent-strong); font-weight: 600; }
+.suggest button {
+  border: 0; background: none; color: var(--label-2); font-size: 20px; line-height: 1; cursor: pointer;
+  width: 32px; height: 32px; border-radius: 6px;
+}
+.suggest button:hover { background: color-mix(in oklch, var(--accent) 15%, transparent); color: var(--label); }
 
 /* Hero */
 .hero { text-align: center; padding-top: 72px; padding-bottom: 40px; }
@@ -137,7 +169,9 @@ h3 { font-size: 17px; margin: 0 0 6px; }
 .footer p { margin: 4px 0; }
 
 @media (max-width: 560px) {
-  .nav nav a:not([href="#download"]) { display: none; }
+  .nav nav > a:not([href="#download"]) { display: none; }
+  .nav nav { gap: 12px; }
+
   .hero { padding-top: 48px; }
   .hero-icon { width: 88px; height: 88px; }
   .cta .btn { width: 100%; }

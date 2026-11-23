@@ -35,10 +35,10 @@ impl Drop for InstallGuard {
 #[tauri::command]
 pub async fn deps_install(app: AppHandle, components: Option<Vec<String>>) -> Result<(), String> {
     if queue::has_active(&app) {
-        return Err("Wait for active downloads to finish before updating components.".into());
+        return Err("E:busy_downloading".into());
     }
     if INSTALLING.swap(true, Ordering::SeqCst) {
-        return Err("Components are already being installed.".into());
+        return Err("E:already_installing".into());
     }
     let _guard = InstallGuard;
 
@@ -54,15 +54,16 @@ pub async fn deps_install(app: AppHandle, components: Option<Vec<String>>) -> Re
 
     let results =
         futures_util::future::join_all(wanted.iter().map(|c| binaries::install(&app, *c))).await;
-    let errors: Vec<String> = wanted
+    // Each component's own error is on its progress row; this names the failures.
+    let failed: Vec<&str> = wanted
         .iter()
         .zip(results)
-        .filter_map(|(c, r)| r.err().map(|e| format!("{}: {e}", c.id())))
+        .filter_map(|(c, r)| r.err().map(|_| c.id()))
         .collect();
-    if errors.is_empty() {
+    if failed.is_empty() {
         Ok(())
     } else {
-        Err(errors.join("\n"))
+        Err(format!("E:install_failed:{}", failed.join(", ")))
     }
 }
 
@@ -101,10 +102,9 @@ pub async fn ytdlp_check_update(app: AppHandle) -> Result<UpdateInfo, String> {
 pub async fn probe(app: AppHandle, url: String) -> Result<ProbeResult, String> {
     let url = url.trim().to_string();
     if !(url.starts_with("http://") || url.starts_with("https://")) {
-        return Err("Paste a full link starting with https://".into());
+        return Err("E:invalid_url".into());
     }
-    let (ytdlp_path, _) = binaries::find_executable(&app, "yt-dlp")
-        .ok_or("yt-dlp isn't installed. Install it under Settings → Components.")?;
+    let (ytdlp_path, _) = binaries::find_executable(&app, "yt-dlp").ok_or("E:ytdlp_missing")?;
     let deno = binaries::find_executable(&app, "deno").map(|(p, _)| p);
     let tools = ytdlp::Tools {
         ffmpeg: None,
@@ -120,8 +120,8 @@ pub async fn probe(app: AppHandle, url: String) -> Result<ProbeResult, String> {
         .kill_on_drop(true);
     let out = tokio::time::timeout(std::time::Duration::from_secs(180), cmd.output())
         .await
-        .map_err(|_| "Timed out while reading the link. Try again.".to_string())?
-        .map_err(|e| format!("Couldn't start yt-dlp: {e}"))?;
+        .map_err(|_| "E:probe_timeout".to_string())?
+        .map_err(|e| format!("E:ytdlp_start_failed:{e}"))?;
 
     if !out.status.success() {
         let log: Vec<String> = String::from_utf8_lossy(&out.stderr)
@@ -219,7 +219,7 @@ pub fn reveal_file(app: AppHandle, path: String) -> Result<(), String> {
                 .opener()
                 .open_path(dir.to_string_lossy(), None::<&str>)
                 .map_err(|e| e.to_string()),
-            None => Err("That file no longer exists.".into()),
+            None => Err("E:file_missing".into()),
         }
     }
 }

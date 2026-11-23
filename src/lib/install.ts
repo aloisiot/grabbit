@@ -1,4 +1,5 @@
 // Pure helpers for component-install progress (unit-tested).
+import { describeError, getT } from "../i18n";
 import { formatBytes, formatSpeed } from "./format";
 import type { ComponentId, InstallProgress, InstallStage } from "./types";
 
@@ -17,26 +18,28 @@ export function percentOf(p: InstallProgress | undefined): number | null {
 
 /** One line describing where a component's install is at. */
 export function stageText(p: InstallProgress): string {
+  const t = getT();
+  const s = t.components.stage;
   switch (p.stage) {
     case "queued":
-      return "Waiting to start…";
+      return s.queued;
     case "connecting":
-      return "Connecting…";
+      return s.connecting;
     case "downloading":
       return [
-        p.total ? `${formatBytes(p.downloaded)} of ${formatBytes(p.total)}` : `${formatBytes(p.downloaded)} downloaded`,
+        p.total ? t.common.of(formatBytes(p.downloaded), formatBytes(p.total)) : s.downloaded(formatBytes(p.downloaded)),
         formatSpeed(p.speed),
       ]
         .filter(Boolean)
         .join(" · ");
     case "extracting":
-      return "Checksum verified · unpacking…";
+      return s.extracting;
     case "testing":
-      return "Checking that it runs (can take a few seconds)…";
+      return s.testing;
     case "done":
-      return p.version ? `Installed · version ${p.version}` : "Installed";
+      return p.version ? s.installedVersion(p.version) : s.installed;
     case "error":
-      return p.error ?? "Failed";
+      return p.error ? describeError(p.error, t) : t.common.failed;
   }
 }
 

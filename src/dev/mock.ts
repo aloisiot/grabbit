@@ -60,7 +60,7 @@ export function installMocks() {
     for (let p = 0; p <= 100; p += 4) {
       if ((job.status as Job["status"]) === "cancelled") return update(job); // set by cancel_job meanwhile
       Object.assign(job, {
-        stage: "Downloading",
+        stage: "downloading",
         percent: p,
         downloadedBytes: (total * p) / 100,
         totalBytes: total,
@@ -70,7 +70,7 @@ export function installMocks() {
       update(job);
       await wait(250);
     }
-    for (const stage of ["Merging video and audio", "Embedding thumbnail"]) {
+    for (const stage of ["pp:Merger", "pp:EmbedThumbnail"]) {
       Object.assign(job, { status: "processing", stage, speed: null, eta: null });
       update(job);
       await wait(800);
@@ -78,7 +78,7 @@ export function installMocks() {
     const ext = job.options.mode === "audio" ? job.options.audioFormat : job.options.videoContainer;
     const filepath = `${job.options.outputDir}/${job.title} [${job.videoId}].${ext}`;
     if (job.title.toLowerCase().includes("private")) {
-      Object.assign(job, { status: "error", stage: null, error: "This video is private.", log: ["ERROR: [youtube] x: Private video"] });
+      Object.assign(job, { status: "error", stage: null, error: "E:private", log: ["ERROR: [youtube] x: Private video"] });
     } else {
       Object.assign(job, { status: "done", stage: null, filepath });
       history = [{ id: job.id, url: job.url, videoId: job.videoId, title: job.title, thumbnail: job.thumbnail, filepath, mode: job.options.mode, sizeBytes: total, completedAt: Date.now(), exists: true }, ...history];
@@ -119,8 +119,8 @@ export function installMocks() {
               await wait(100);
             }
             if (failOnce.delete(id)) {
-              send(id, "error", { error: "Download interrupted: connection reset. Check your connection and retry." });
-              throw `${id}: Download interrupted`;
+              send(id, "error", { error: "E:download_interrupted:connection reset" });
+              throw id;
             }
             send(id, "extracting", { downloaded: size, total: size });
             await wait(600);
@@ -131,7 +131,7 @@ export function installMocks() {
           };
           const results = await Promise.allSettled(ids.map(one));
           const errors = results.filter((r): r is PromiseRejectedResult => r.status === "rejected").map((r) => String(r.reason));
-          if (errors.length) throw errors.join("\n");
+          if (errors.length) throw `E:install_failed:${errors.join(", ")}`;
           return null;
         }
         case "ytdlp_check_update":
@@ -156,7 +156,8 @@ export function installMocks() {
               })),
             } satisfies ProbeResult;
           }
-          if (url.includes("fail")) throw "This video is unavailable (removed, private, or blocked in your region).";
+          if (url.includes("fail")) throw "E:unavailable";
+
           return {
             kind: "video",
             id: "aqz-KE-bpKQ",
