@@ -1,0 +1,149 @@
+/* Colours mirror the app's own tokens (src/index.css) so the page and the app match. */
+:root {
+  --accent-hue: 275;
+  --accent: oklch(0.55 0.2 var(--accent-hue));
+  --accent-strong: oklch(0.47 0.19 var(--accent-hue));
+  --accent-soft: oklch(0.93 0.035 var(--accent-hue));
+  --accent-on: #fff;
+  --bg: oklch(0.975 0.003 var(--accent-hue));
+  --surface: #fff;
+  --fill: oklch(0.935 0.005 var(--accent-hue));
+  --fill-hover: oklch(0.9 0.006 var(--accent-hue));
+  --separator: oklch(0.9 0.005 var(--accent-hue));
+  --label: oklch(0.21 0.012 var(--accent-hue));
+  --label-2: oklch(0.5 0.014 var(--accent-hue));
+  --label-3: oklch(0.64 0.01 var(--accent-hue));
+  --elev: 0 0 0 0.5px rgb(20 18 40 / 0.08), 0 1px 2px rgb(20 18 40 / 0.04);
+  --shot-shadow: 0 24px 60px -20px rgb(40 20 90 / 0.35), 0 0 0 0.5px rgb(20 18 40 / 0.12);
+  --radius: 11px;
+  --radius-control: 8px;
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --accent: oklch(0.66 0.17 var(--accent-hue));
+    --accent-strong: oklch(0.8 0.1 var(--accent-hue));
+    --accent-soft: oklch(0.33 0.075 var(--accent-hue));
+    --accent-on: oklch(0.17 0.03 var(--accent-hue));
+    --bg: oklch(0.17 0.006 var(--accent-hue));
+    --surface: oklch(0.215 0.007 var(--accent-hue));
+    --fill: oklch(0.28 0.008 var(--accent-hue));
+    --fill-hover: oklch(0.32 0.009 var(--accent-hue));
+    --separator: oklch(0.3 0.008 var(--accent-hue));
+    --label: oklch(0.97 0.003 var(--accent-hue));
+    --label-2: oklch(0.74 0.01 var(--accent-hue));
+    --label-3: oklch(0.56 0.01 var(--accent-hue));
+    --elev: 0 0 0 0.5px rgb(255 255 255 / 0.07);
+    --shot-shadow: 0 24px 60px -20px rgb(0 0 0 / 0.7), 0 0 0 0.5px rgb(255 255 255 / 0.1);
+    color-scheme: dark;
+  }
+}
+
+* { box-sizing: border-box; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--label);
+  font: 16px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, Roboto, "Helvetica Neue", Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+img { max-width: 100%; height: auto; }
+code { font: 0.9em ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; background: var(--fill); padding: 0.1em 0.35em; border-radius: 4px; }
+
+.wrap { max-width: 1080px; margin: 0 auto; padding: 0 16px; }
+
+/* Nav */
+.nav {
+  position: sticky; top: 0; z-index: 10;
+  background: color-mix(in oklch, var(--bg) 82%, transparent);
+  backdrop-filter: saturate(180%) blur(16px);
+  -webkit-backdrop-filter: saturate(180%) blur(16px);
+  border-bottom: 0.5px solid var(--separator);
+}
+.nav-inner { display: flex; align-items: center; justify-content: space-between; height: 52px; }
+.brand { display: flex; align-items: center; gap: 8px; color: var(--label); font-weight: 600; }
+.brand:hover { text-decoration: none; }
+.nav nav { display: flex; gap: 20px; font-size: 14px; }
+.nav nav a { color: var(--label-2); }
+.nav nav a:hover { color: var(--label); text-decoration: none; }
+
+/* Hero */
+.hero { text-align: center; padding-top: 72px; padding-bottom: 40px; }
+.hero-icon { width: 112px; height: 112px; }
+h1 {
+  font-size: clamp(32px, 6vw, 54px); line-height: 1.08; letter-spacing: -0.025em;
+  margin: 20px auto 16px; max-width: 20ch; text-wrap: balance;
+}
+.lede { font-size: clamp(17px, 2.2vw, 20px); color: var(--label-2); max-width: 36em; margin: 0 auto; text-wrap: pretty; }
+.cta { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; margin: 32px 0 16px; }
+.meta { color: var(--label-3); font-size: 14px; margin: 4px 0; }
+.meta a { color: inherit; text-decoration: underline; text-underline-offset: 2px; }
+
+/* Buttons */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  min-height: 44px; padding: 0 22px; border-radius: 999px;
+  font-weight: 600; font-size: 16px; transition: background-color 0.15s, transform 0.15s;
+}
+.btn:hover { text-decoration: none; }
+.btn:active { transform: scale(0.98); }
+.btn-primary { background: var(--accent); color: var(--accent-on); }
+.btn-primary:hover { background: var(--accent-strong); }
+.btn:focus-visible { outline: 3px solid color-mix(in oklch, var(--accent) 45%, transparent); outline-offset: 2px; }
+
+/* Screenshot */
+.shot { padding-bottom: 32px; }
+.shot img { display: block; margin: 0 auto; width: 100%; max-width: 980px; border-radius: 12px; box-shadow: var(--shot-shadow); }
+
+/* Sections */
+.section { padding-top: 72px; padding-bottom: 16px; }
+h2 { font-size: clamp(26px, 4vw, 34px); letter-spacing: -0.02em; line-height: 1.15; margin: 0 0 8px; text-align: center; text-wrap: balance; }
+.section-lede { text-align: center; color: var(--label-2); margin: 0 0 32px; }
+#features h2 { margin-bottom: 32px; }
+h3 { font-size: 17px; margin: 0 0 6px; }
+
+.features { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; }
+.features article, .platform, .steps article {
+  background: var(--surface); border-radius: var(--radius); box-shadow: var(--elev); padding: 20px;
+}
+.features p, .steps p { margin: 0; color: var(--label-2); font-size: 15px; }
+
+/* Downloads */
+.platforms-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; }
+.platform { display: flex; flex-direction: column; gap: 8px; }
+.platform h3 { margin: 0; font-size: 20px; }
+.platform .req { margin: 0 0 8px; color: var(--label-3); font-size: 14px; }
+.platform .hint { margin: 4px 0 0; color: var(--label-3); font-size: 13px; }
+.btn-row {
+  justify-content: space-between; border-radius: var(--radius-control);
+  background: var(--fill); color: var(--label); padding: 0 14px; font-size: 15px;
+}
+.btn-row:hover { background: var(--fill-hover); }
+.btn-row span { font-weight: 400; color: var(--label-2); font-size: 13px; }
+.all-releases { text-align: center; margin-top: 24px; font-size: 15px; }
+
+.steps { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; }
+
+/* Footer */
+.footer { margin-top: 88px; padding: 32px 0 48px; border-top: 0.5px solid var(--separator); color: var(--label-3); font-size: 14px; text-align: center; }
+.footer p { margin: 4px 0; }
+
+@media (max-width: 560px) {
+  .nav nav a:not([href="#download"]) { display: none; }
+  .hero { padding-top: 48px; }
+  .hero-icon { width: 88px; height: 88px; }
+  .cta .btn { width: 100%; }
+  .section { padding-top: 56px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  .btn { transition: none; }
+}

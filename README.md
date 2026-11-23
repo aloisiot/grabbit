@@ -42,8 +42,8 @@ src-tauri/src/
 
 ## Install
 
-Download the installer for your system from the
-[Releases](../../releases) page.
+Download Grabbit from **[aloisiot.github.io/grabbit](https://aloisiot.github.io/grabbit/)**,
+or pick an installer from the [Releases](../../releases) page.
 
 - **macOS**: pick `aarch64` for Apple Silicon (M1 and later) or `x64` for Intel.
   Open the `.dmg` and drag Grabbit to Applications.
@@ -60,6 +60,15 @@ warns the first time you open Grabbit:
   **Open** → **Open**.)
 - **Windows**: on the SmartScreen prompt, click **More info** → **Run anyway**.
 
+## Landing page
+
+The website in `site/` is published to GitHub Pages by
+`.github/workflows/pages.yml`. The workflow runs whenever a release is
+published, and `scripts/build-site.mjs` writes that release's version and
+download links into the page. Publishing the draft that `release.yml` creates
+is all it takes to update the site. One-time setup: **Settings → Pages →
+Source: GitHub Actions**.
+
 ## Development
 
 Prerequisites: [Node.js](https://nodejs.org) 20+, [Rust](https://rustup.rs),
@@ -73,6 +82,7 @@ npm run dev            # UI only, in a browser, with a mocked backend (src/dev/m
 npm run reset          # remove installed yt-dlp/ffmpeg/deno to test first-run setup
                        #   add -- --all to also wipe settings and history, -- --dry-run to preview
 npm test               # frontend unit tests (Vitest)
+npm run site:build     # build the landing page (site/ → dist-site/) with the latest release's links
 npm run typecheck
 cd src-tauri && cargo test && cargo clippy --all-targets
 npm run tauri build    # build an installer for your platform
