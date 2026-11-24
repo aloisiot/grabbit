@@ -156,6 +156,15 @@ export const fr: Messages = {
     resetTitle: "Rétablir les valeurs par défaut",
     resetConfirm: "Rétablir toutes les valeurs de téléchargement par défaut ? Vos téléchargements, l’historique et les composants installés ne sont pas affectés.",
     resetOk: "Rétablir",
+    updates: "Mises à jour",
+    updatesFooter: "Grabbit recherche une nouvelle version à chaque démarrage.",
+    checkForUpdates: "Rechercher des mises à jour",
+    checkingUpdates: "Vérification…",
+    upToDate: "Grabbit est à jour.",
+    checkFailed: (error: string) => `Impossible de rechercher des mises à jour : ${error}`,
+    autoUpdate: "Installer les mises à jour automatiquement",
+    autoUpdateOn: "Les nouvelles versions s’installent au démarrage de Grabbit",
+    autoUpdateOff: "Grabbit demande avant d’installer une nouvelle version",
   },
 
   components: {
@@ -192,6 +201,23 @@ export const fr: Messages = {
       installedVersion: (v) => `Installé · version ${v}`,
       installed: "Installé",
     },
+  },
+
+  updater: {
+    checking: "Recherche de mises à jour…",
+    starting: "Démarrage…",
+    available: (version: string) => `Grabbit ${version} est disponible`,
+    availableDetail: (current: string) => `Vous avez la version ${current}. Grabbit redémarre pour terminer la mise à jour.`,
+    whatsNew: "Nouveautés",
+    install: "Installer et redémarrer",
+    later: "Plus tard",
+    autoUpdateTip: "Vous pouvez installer les mises à jour automatiquement dans les Réglages.",
+    downloadsWillStop: "Les téléchargements en cours s’arrêteront au redémarrage de Grabbit.",
+    downloading: (version: string) => `Téléchargement de Grabbit ${version}…`,
+    installing: (version: string) => `Installation de Grabbit ${version}…`,
+    restartHint: "Grabbit redémarrera une fois terminé.",
+    failed: "La mise à jour n’a pas pu être installée.",
+    continue: "Continuer",
   },
 
   setup: {

@@ -2,6 +2,12 @@ name: Release
 
 # Push a tag like v0.1.0 to build installers for every platform and attach
 # them to a draft GitHub release.
+#
+# Self-update: every build also signs its updater bundle with the minisign key
+# in the TAURI_SIGNING_PRIVATE_KEY / TAURI_SIGNING_PRIVATE_KEY_PASSWORD secrets
+# (public half in tauri.conf.json > plugins.updater.pubkey) and adds it to the
+# release's latest.json, which installed apps read from
+# releases/latest/download/latest.json once the release is published.
 on:
   push:
     tags: ["v*"]
@@ -75,12 +81,16 @@ jobs:
       - uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
           # macOS code signing (optional). Add these repository secrets to sign builds:
           # APPLE_CERTIFICATE, APPLE_CERTIFICATE_PASSWORD, APPLE_SIGNING_IDENTITY,
           # APPLE_ID, APPLE_PASSWORD, APPLE_TEAM_ID — see https://v2.tauri.app/distribute/sign/macos/
         with:
           releaseId: ${{ needs.create-release.outputs.release-id }}
-          args: ${{ matrix.args }}
+          # Adds the signed updater bundles (kept out of local builds, which
+          # don't have the private key).
+          args: ${{ matrix.args }} --config src-tauri/tauri.release.conf.json
 
   # Windows is built in separate steps so the binaries can be signed through
   # SignPath (https://signpath.org) between building and bundling:
@@ -88,9 +98,12 @@ jobs:
   #   3. bundle NSIS + MSI        4. sign the installers   5. attach to the release
   # Signing is skipped (unsigned installers, as before) until the
   # SIGNPATH_API_TOKEN secret and SIGNPATH_ORGANIZATION_ID variable exist.
+  # It runs after the macOS/Linux builds so it can add its entry to the
+  # latest.json they upload (and still runs if one of them failed).
   windows:
     name: Build (Windows)
-    needs: create-release
+    needs: [create-release, build]
+    if: ${{ !cancelled() && needs.create-release.result == 'success' }}
     runs-on: windows-latest
     permissions:
       actions: read
@@ -148,8 +161,9 @@ jobs:
         run: cp signed-app/grabbit.exe src-tauri/target/release/grabbit.exe
 
       # --no-binary-patching keeps the signature on grabbit.exe intact. Patching
-      # only records the bundle type for the updater plugin, which Grabbit
-      # doesn't use.
+      # only records the bundle type for the updater; without it the updater
+      # looks up the generic "windows-x86_64" entry in latest.json, which
+      # points at the NSIS installer below.
       - name: Bundle installers
         run: npx tauri bundle --bundles nsis,msi --no-binary-patching
 
@@ -191,6 +205,30 @@ jobs:
           rm -rf installers
           mv signed-installers installers
           ls -l installers
+
+      # The updater signature must cover the final (SignPath-signed) installer
+      # bytes, so it's made here rather than during bundling.
+      - name: Add Windows to the updater manifest
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        run: |
+          setup=$(ls installers/*-setup.exe)
+          name=$(basename "$setup")
+          npx tauri signer sign -p "$TAURI_SIGNING_PRIVATE_KEY_PASSWORD" "$setup"
+          url="https://github.com/$GITHUB_REPOSITORY/releases/download/$GITHUB_REF_NAME/$name"
+          gh release download "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --pattern latest.json --dir manifest ||
+            { mkdir -p manifest; echo '{}' > manifest/latest.json; }
+          jq --arg v "${GITHUB_REF_NAME#v}" --arg sig "$(cat "$setup.sig")" --arg url "$url" '
+            .version //= $v
+            | .notes //= "See the assets below to download and install this version."
+            | .pub_date //= (now | todate)
+            | .platforms["windows-x86_64"] = {signature: $sig, url: $url}
+            | .platforms["windows-x86_64-nsis"] = {signature: $sig, url: $url}
+          ' manifest/latest.json > installers/latest.json
+          cat installers/latest.json
 
       - name: Attach installers to the release
         shell: bash

@@ -159,6 +159,15 @@ export const en = {
     resetTitle: "Reset to Defaults",
     resetConfirm: "Restore every download default? Your downloads, history and installed components aren't affected.",
     resetOk: "Reset",
+    updates: "Updates",
+    updatesFooter: "Grabbit checks for a new version each time it starts.",
+    checkForUpdates: "Check for Updates",
+    checkingUpdates: "Checking…",
+    upToDate: "Grabbit is up to date.",
+    checkFailed: (error: string) => `Couldn't check for updates: ${error}`,
+    autoUpdate: "Install updates automatically",
+    autoUpdateOn: "New versions install when Grabbit starts",
+    autoUpdateOff: "Grabbit asks before installing a new version",
   },
 
   components: {
@@ -196,6 +205,23 @@ export const en = {
       installedVersion: (v: string) => `Installed · version ${v}`,
       installed: "Installed",
     },
+  },
+
+  updater: {
+    checking: "Checking for updates…",
+    starting: "Starting…",
+    available: (version: string) => `Grabbit ${version} is available`,
+    availableDetail: (current: string) => `You have version ${current}. Grabbit restarts to finish updating.`,
+    whatsNew: "What's new",
+    install: "Install and Restart",
+    later: "Later",
+    autoUpdateTip: "You can have updates install automatically in Settings.",
+    downloadsWillStop: "Downloads in progress will stop when Grabbit restarts.",
+    downloading: (version: string) => `Downloading Grabbit ${version}…`,
+    installing: (version: string) => `Installing Grabbit ${version}…`,
+    restartHint: "Grabbit will restart when it's done.",
+    failed: "The update couldn't be installed.",
+    continue: "Continue",
   },
 
   setup: {

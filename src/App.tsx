@@ -3,12 +3,14 @@ import { DownloadView } from "./components/DownloadView";
 import { HistoryView } from "./components/HistoryView";
 import { SettingsView } from "./components/SettingsView";
 import { SetupScreen } from "./components/Components";
-import { Button, ErrorNote, Icon, Logo, Spinner } from "./components/ui";
+import { UpdateScreen } from "./components/UpdateScreen";
+import { Button, ErrorNote, Icon, Logo } from "./components/ui";
 import { useT } from "./i18n";
 import { errorMessage } from "./lib/ipc";
 import { useDeps } from "./stores/deps";
 import { isActive, useQueue } from "./stores/queue";
 import { useSettings } from "./stores/settings";
+import { updateScreenVisible, useUpdater } from "./stores/updater";
 
 type Tab = "download" | "history" | "settings";
 
@@ -22,9 +24,18 @@ export default function App() {
   const deps = useDeps((s) => s.status);
   const setupVisible = useDeps((s) => s.setupVisible);
   const active = useQueue((s) => s.jobs.filter((j) => isActive(j) || j.status === "queued").length);
+  const [updateChecked, setUpdateChecked] = useState(false);
+  const showUpdate = useUpdater(updateScreenVisible);
 
   useEffect(() => {
-    Promise.all([useSettings.getState().init(), useDeps.getState().init(), useQueue.getState().init()]).catch((e) =>
+    // The update check runs before the app is shown (no download can be in
+    // progress yet); it needs the settings for the auto-update choice.
+    const settingsAndUpdate = useSettings
+      .getState()
+      .init()
+      .then(() => useUpdater.getState().check({ autoInstall: useSettings.getState().settings.autoUpdate }))
+      .finally(() => setUpdateChecked(true));
+    Promise.all([settingsAndUpdate, useDeps.getState().init(), useQueue.getState().init()]).catch((e) =>
       setBootError(errorMessage(e)),
     );
   }, []);
@@ -36,13 +47,8 @@ export default function App() {
       </div>
     );
   }
-  if (!settingsLoaded || !deps) {
-    return (
-      <div className="flex h-full items-center justify-center text-label-tertiary">
-        <Spinner className="size-6" />
-      </div>
-    );
-  }
+  if (!settingsLoaded || !deps || !updateChecked) return <UpdateScreen booting />;
+  if (showUpdate) return <UpdateScreen />;
   if (setupVisible) return <SetupScreen />;
 
   return (

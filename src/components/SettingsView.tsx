@@ -6,9 +6,10 @@ import { api } from "../lib/ipc";
 import { heightLabel, STANDARD_HEIGHTS } from "../lib/format";
 import type { AudioFormat, VideoContainer } from "../lib/types";
 import { useSettings } from "../stores/settings";
+import { useUpdater } from "../stores/updater";
 import { ComponentsGroup } from "./Components";
 import { pickFolder, shortPath } from "./OptionsPanel";
-import { Button, FormRow, Group, Icon, PopUp, Segmented, Switch, inputClass } from "./ui";
+import { Button, FormRow, Group, Icon, PopUp, Segmented, Spinner, Switch, inputClass } from "./ui";
 
 /** Settings as inset grouped rows, like the Download page and macOS System Settings. */
 export function SettingsView() {
@@ -162,6 +163,8 @@ export function SettingsView() {
 
       <ComponentsGroup />
 
+      <UpdatesGroup />
+
       <Group
         header={s.about}
         footer={s.aboutFooter}
@@ -192,5 +195,41 @@ export function SettingsView() {
         </Button>
       </div>
     </div>
+  );
+}
+
+/** App updates: the auto-install choice and a manual check. */
+function UpdatesGroup() {
+  const t = useT();
+  const s = t.settings;
+  const autoUpdate = useSettings((st) => st.settings.autoUpdate);
+  const update = useSettings((st) => st.update);
+  const { phase, error, check } = useUpdater();
+  const checking = phase === "checking";
+
+  let status: string | null = null;
+  if (phase === "upToDate") status = s.upToDate;
+  else if (phase === "error" && error) status = s.checkFailed(error);
+
+  return (
+    <Group
+      header={s.updates}
+      accessory={
+        <Button size="sm" variant="plain" disabled={checking} onClick={() => void check({ manual: true })}>
+          {checking ? (
+            <>
+              <Spinner className="size-3" /> {s.checkingUpdates}
+            </>
+          ) : (
+            s.checkForUpdates
+          )}
+        </Button>
+      }
+      footer={status ?? s.updatesFooter}
+    >
+      <FormRow label={s.autoUpdate} detail={autoUpdate ? s.autoUpdateOn : s.autoUpdateOff}>
+        <Switch label={s.autoUpdate} checked={autoUpdate} onChange={(v) => void update({ autoUpdate: v })} />
+      </FormRow>
+    </Group>
   );
 }

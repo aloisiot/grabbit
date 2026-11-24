@@ -156,6 +156,15 @@ export const de: Messages = {
     resetTitle: "Auf Standard zurücksetzen",
     resetConfirm: "Alle Download-Standardwerte wiederherstellen? Downloads, Verlauf und installierte Komponenten bleiben unberührt.",
     resetOk: "Zurücksetzen",
+    updates: "Updates",
+    updatesFooter: "Grabbit sucht bei jedem Start nach einer neuen Version.",
+    checkForUpdates: "Nach Updates suchen",
+    checkingUpdates: "Wird geprüft…",
+    upToDate: "Grabbit ist auf dem neuesten Stand.",
+    checkFailed: (error: string) => `Suche nach Updates fehlgeschlagen: ${error}`,
+    autoUpdate: "Updates automatisch installieren",
+    autoUpdateOn: "Neue Versionen werden beim Start von Grabbit installiert",
+    autoUpdateOff: "Grabbit fragt, bevor eine neue Version installiert wird",
   },
 
   components: {
@@ -192,6 +201,23 @@ export const de: Messages = {
       installedVersion: (v) => `Installiert · Version ${v}`,
       installed: "Installiert",
     },
+  },
+
+  updater: {
+    checking: "Suche nach Updates…",
+    starting: "Wird gestartet…",
+    available: (version: string) => `Grabbit ${version} ist verfügbar`,
+    availableDetail: (current: string) => `Du hast Version ${current}. Grabbit startet neu, um das Update abzuschließen.`,
+    whatsNew: "Neuerungen",
+    install: "Installieren und neu starten",
+    later: "Später",
+    autoUpdateTip: "In den Einstellungen kannst du Updates automatisch installieren lassen.",
+    downloadsWillStop: "Laufende Downloads werden beim Neustart von Grabbit abgebrochen.",
+    downloading: (version: string) => `Grabbit ${version} wird geladen…`,
+    installing: (version: string) => `Grabbit ${version} wird installiert…`,
+    restartHint: "Grabbit startet danach neu.",
+    failed: "Das Update konnte nicht installiert werden.",
+    continue: "Weiter",
   },
 
   setup: {

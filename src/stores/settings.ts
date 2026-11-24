@@ -18,6 +18,8 @@ export interface Settings {
   autoSubtitles: boolean;
   subLangs: string;
   embedMetadata: boolean;
+  /** Install app updates found at launch without asking (off: ask first). */
+  autoUpdate: boolean;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -32,6 +34,7 @@ export const DEFAULT_SETTINGS: Settings = {
   autoSubtitles: false,
   subLangs: "en.*",
   embedMetadata: true,
+  autoUpdate: false,
 };
 
 interface SettingsState {
